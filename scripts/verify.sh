@@ -39,10 +39,16 @@ else
 fi
 [ -x "$BIN" ] || { printf '\n\033[31m没有可执行文件 %s\033[0m\n' "$BIN"; exit 1; }
 
-# 隔离 HOME：证明不需要任何外部配置文件
+# 隔离 HOME 与 XDG 目录：证明不需要任何外部配置文件。
+# 注意 XDG_CONFIG_HOME 必须一起隔离 —— GitHub Actions 等环境会设置它，
+# 而 config.Dir() 优先用它，只覆盖 HOME 会让测试读写不同的目录。
 FH="$(mktemp -d)"
+export HOME="$FH"
+export XDG_CONFIG_HOME="$FH/.config"
+export XDG_CACHE_HOME="$FH/.cache"
+mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME"
 trap 'rm -rf "$FH"' EXIT
-run() { HOME="$FH" "$BIN" "$@"; }
+run() { "$BIN" "$@"; }
 
 # ── 1. 基本命令面 ──────────────────────────────────────────────────────────
 head_ "1. 基本命令"
@@ -107,7 +113,7 @@ rm -rf "$ud"
 
 # ── 6. context 与凭据 ──────────────────────────────────────────────────────
 head_ "6. context 与凭据"
-cfgdir="$FH/.config/nexus-cli"
+cfgdir="$XDG_CONFIG_HOME/nexus-cli"
 mkdir -p "$cfgdir"
 cat > "$cfgdir/config.json" <<'JSON'
 {
