@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime/debug"
 
 	restish "github.com/rest-sh/restish/v2"
 
@@ -20,8 +21,22 @@ import (
 	"github.com/wendaoji/nexus-cli/internal/specs"
 )
 
-// version 由 -ldflags "-X main.version=..." 注入。
+// version 由 -ldflags "-X main.version=..." 注入（make build / goreleaser）。
 var version = "dev"
+
+// resolveVersion 在 ldflags 没注入时回退到构建信息里的模块版本。
+// 这样 `go install ...@v1.2.3` 装出来的二进制也会显示正确版本，而不是 dev。
+func resolveVersion() string {
+	if version != "" && version != "dev" {
+		return version
+	}
+	if bi, ok := debug.ReadBuildInfo(); ok {
+		if v := bi.Main.Version; v != "" && v != "(devel)" {
+			return v
+		}
+	}
+	return version
+}
 
 const apiName = "nexus-cli"
 
@@ -63,7 +78,7 @@ func run() error {
 		"Nexus Repository Manager CLI",
 		"Nexus Repository Manager CLI —— 内嵌 Restish 与 OpenAPI spec，单文件分发。",
 	)
-	cli.SetVersion(version)
+	cli.SetVersion(resolveVersion())
 	cli.SetDefaultConfig(&restish.Config{APIs: map[string]*restish.APIConfig{
 		apiName: {
 			BaseURL:       nexus.Origin(),
@@ -110,7 +125,7 @@ func dispatch(args []string) (bool, error) {
 	case "mcp":
 		return true, commands.MCP(rest)
 	case "version", "--version":
-		fmt.Printf("nexus-cli %s\n", version)
+		fmt.Printf("nexus-cli %s\n", resolveVersion())
 		return true, nil
 	case "task":
 		// task 组里只有 wait 是我们的，其它（list/get/run/...）交给 Restish。
