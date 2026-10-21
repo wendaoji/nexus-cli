@@ -93,7 +93,8 @@ nexus-cli upload-dir --repo <maven-repo> --format maven --dir ./m2
 
 ## 安全约定
 
-- 一律使用**可吊销的 user token**（`NEXUS_USER`/`NEXUS_PASSWORD` 指向它），不要用 admin 密码。
+- 一律使用**专用只读账号**（`NEXUS_USER`/`NEXUS_PASSWORD` 指向它），不要用 admin 账号。
+  Nexus 的 user token 是 Pro 专属功能，Community 版只能用账号密码。
 - **破坏性操作先与用户确认**再执行：`repo delete`、`component`/`asset delete`、
   `blobstore delete`、`security user-delete`/`role-delete`、`script delete`、
   `repo invalidate-cache`、`configuration set`。这些在 MCP 通道已被屏蔽，

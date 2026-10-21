@@ -153,6 +153,32 @@ grep -q '凭据文件' <<<"$who" && ok "whoami 显示凭据文件路径" || bad 
 who2="$(NEXUS_USER=envuser NEXUS_PASSWORD=envpass "$NEXUS" whoami 2>&1)"
 grep -q '凭据来源: 环境变量' <<<"$who2" && ok "环境变量优先于文件" || bad "凭据优先级不符预期"
 
+# ── 8d. login 本地行为 ─────────────────────────────────────────────────────
+head_ "8d. login 本地行为"
+if "$NEXUS" login --help >/dev/null 2>&1; then ok "login --help"; else bad "login --help 失败"; fi
+if "$NEXUS" login >/dev/null 2>&1; then
+  bad "缺 --user 时应当报错"
+else
+  ok "缺 --user 时正确报错"
+fi
+# 非交互且未给 --password-stdin：应明确报错，且不应该去联网
+out="$(env -u NEXUS_USER -u NEXUS_PASSWORD "$NEXUS" login --user x </dev/null 2>&1)"
+if grep -q 'password-stdin' <<<"$out"; then ok "非交互时提示用 --password-stdin"; else bad "非交互报错信息不明确: $out"; fi
+
+# ── 8e. 脚本 lint：$VAR 后紧跟非 ASCII 会 unbound variable ──────────────────
+# bash 会把多字节字符并进变量名（变量名后紧跟全角括号/中文等就会中招），
+# 必须写 ${VAR}。这个坑在开发中踩过三次，固化成检查。
+# 只检查代码：跳过注释行（注释里出现该写法不会真的展开变量）。
+head_ "8e. 脚本 lint"
+lint_hits="$(grep -rnE '\$[A-Za-z_][A-Za-z0-9_]*[^ -~]' "$ROOT/bin" "$ROOT/scripts" 2>/dev/null \
+  | grep -vE ':[0-9]+:[[:space:]]*#' || true)"
+if [ -n "$lint_hits" ]; then
+  bad "\$VAR 后紧跟非 ASCII（需改成 \${VAR}）："
+  sed 's/^/      /' <<<"$lint_hits"
+else
+  ok "无 \$VAR + 非 ASCII 写法"
+fi
+
 # ── 9. MCP 只读 ────────────────────────────────────────────────────────────
 head_ "9. MCP 只读"
 mcp_err="$(mktemp -t nexusmcp.XXXXXX)"

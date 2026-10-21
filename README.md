@@ -33,11 +33,10 @@ restish plugin install rest-sh/restish mcp --yes
 # 2. 生成机械层 + 注册到 Restish 全局配置
 scripts/install.sh
 
-# 3. 写入凭据（推荐用可吊销的 user token，不要用 admin 密码）
-#    会写入 ~/.config/nexus-cli/env（chmod 600）
-nexus-cli login --user <只读账号> --admin-user admin --admin-pass '***'
-# 也可以手工给环境变量（CI/agent 场景），环境变量优先于文件：
-#   export NEXUS_USER=... NEXUS_PASSWORD=...
+# 3. 写入凭据（写入前会先校验一次；会存到 ~/.config/nexus-cli/env，chmod 600）
+nexus-cli login --user <只读账号>            # 交互式输入密码（不回显）
+#   nexus-cli login --user <账号> --password-stdin   # 脚本/CI
+#   export NEXUS_USER=... NEXUS_PASSWORD=...        # 或直接用环境变量（优先于文件）
 
 # 4. 验证
 scripts/verify.sh
@@ -58,9 +57,27 @@ nexus-cli repo list -o json
 **配置文件：`~/.config/nexus-cli/env`**（`chmod 600`，由 `nexus-cli login` 写入）：
 
 ```
-NEXUS_USER=<user token 的 name>
-NEXUS_PASSWORD=<user token 的 passcode>
+NEXUS_USER=<账号>
+NEXUS_PASSWORD=<密码或 user token passcode>
 ```
+
+`nexus-cli login` 会**先校验一次凭据**再落盘，避免存下错的凭据后到处 401
+（还会触发 Nexus 的认证限流）：
+
+```bash
+nexus-cli login --user <账号>              # 交互式输入，不回显
+nexus-cli login --user <账号> --password-stdin   # 脚本/CI
+```
+
+校验用的是 `GET /v1/repositories`，据此区分三种情况：
+`200` 有效 / `403` 已认证但无权限（凭据本身有效）/ `401` 凭据无效 / `429` 被限流。
+
+> **关于 User Token：它是 Nexus Pro 专属功能。** Community 版没有该接口
+> （即便是 Pro，路径也是 `/v1/security/users/{userId}/{realm}/user-token`，
+> 需要配合 realm，且不是所有版本都开放）。所以本工具**不提供**"用 admin 自动
+> 铸造 token"的能力 —— 那个接口在 Community 上必然 404。
+> 若你在 Pro 版或 Web UI 里拿到了 user token，**直接把它当密码传给 `--password`** 即可：
+> Nexus 的 token 用法就是用「token name + passcode」替换「用户名 + 密码」做 Basic 认证。
 
 优先级：**环境变量 > 凭据文件**。文件只「填补」环境里没设置的变量，
 所以 CI/agent 用环境变量、日常用文件，互不打架。查当前生效来源：
@@ -385,7 +402,8 @@ nexus-cli/
 
 ## 安全
 
-- CLI/MCP 一律使用**可吊销的 user token**，不要用 admin 密码。
+- CLI/MCP 一律使用**专用只读账号**，不要用 admin 账号。Nexus 的 user token
+  是 Pro 专属功能，Community 版只能用账号密码；若你有 token，按密码用即可。
 - 凭据只通过 `env:` 引用；`nexus-cli login` 写入的 `~/.config/nexus-cli/env` 为 `chmod 600`。
 - MCP 默认只读；`delete*` 及破坏性写操作已 `x-mcp-ignore`。
 - 仓库内不含任何凭据（见 `.gitignore`）。

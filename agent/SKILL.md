@@ -93,7 +93,8 @@ HTTP 错误时响应体在 stdout 而退出码是 4——**用退出码判断成
 
 ## 安全
 
-- 只用**可吊销的 user token**（`NEXUS_USER`/`NEXUS_PASSWORD`），不用 admin 密码。
+- 只用**专用只读账号**（`NEXUS_USER`/`NEXUS_PASSWORD`），不用 admin 账号。
+  Nexus 的 user token 是 Pro 专属功能，Community 版只能用账号密码。
 - 破坏性操作（`* delete`、`invalidate-cache`、`configuration set`、`user-delete`、
   `role-delete`）**执行前必须与用户确认**。MCP 通道已屏蔽这些，CLI 通道没有。
 - 不要把凭据写进仓库或日志。

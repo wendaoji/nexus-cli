@@ -144,7 +144,7 @@ nexus-cli —— Nexus Repository Manager CLI（基座: Restish）
   nexus-cli upload ...                 上传单个构件（multipart，Restish 无法表达）
   nexus-cli upload-dir ...             批量上传一个目录
   nexus-cli task wait <id>             轮询异步任务直到终态（0=成功 1=失败 124=超时）
-  nexus-cli login ...                  创建/写入 user token 到凭据文件
+  nexus-cli login --user <账号>        保存并校验凭据（写入 ~/.config/nexus-cli/env）
   nexus-cli whoami                     显示当前生效的凭据来源
   nexus-cli mcp                        以 MCP server 方式启动（供 AI agent 接入）
   nexus-cli groups                     列出命令分组
@@ -593,42 +593,77 @@ cmd_task_wait() {
 }
 
 # ── login / whoami ─────────────────────────────────────────────────────────
+login_help() {
+  cat <<EOF
+用法: nexus-cli login --user <账号> [--password <密码> | --password-stdin]
+
+把凭据写入 ${CRED_FILE}（chmod 600），写入前会先校验一次。
+
+  --user <账号>          要保存的账号（建议只读账号）
+  --password <密码>      直接给密码；注意会出现在 ps / shell history 里
+  --password-stdin       从 stdin 读密码（适合脚本/CI）
+  （都不给则交互式输入，不回显）
+
+关于 token：
+  Nexus 的 User Token 是 **Pro 专属功能**（Community 版没有该接口，
+  调用会 404）。若你在 Pro 版或 UI 里拿到了 user token，直接把它当作
+  --password 传入即可 —— Nexus 就是用「token name + passcode」替换
+  「用户名 + 密码」做 Basic 认证的。
+EOF
+}
+
 cmd_login() {
-  local user="" admin_user="${NEXUS_ADMIN_USER:-}" admin_pass="${NEXUS_ADMIN_PASSWORD:-}"
+  local user="" pass="" pass_stdin=0
   while [ $# -gt 0 ]; do
     case "$1" in
-      --user)       user="${2:?}"; shift 2;;
-      --admin-user) admin_user="${2:?}"; shift 2;;
-      --admin-pass) admin_pass="${2:?}"; shift 2;;
-      -h|--help)    echo "用法: nexus-cli login --user <要为其创建token的用户> [--admin-user U] [--admin-pass P]"; return 0;;
-      *) die "login: 未知参数 '$1'";;
+      --user)           user="${2:?}"; shift 2;;
+      --password)       pass="${2:?}"; shift 2;;
+      --password-stdin) pass_stdin=1; shift;;
+      -h|--help)        login_help; return 0;;
+      *) die "login: 未知参数 '$1'（--help 看用法）";;
     esac
   done
-  [ -n "$user" ] || die "login: 需要 --user（目标用户，通常是只读账号）"
-  [ -n "$admin_user" ] || die "login: 需要 --admin-user（或环境变量 NEXUS_ADMIN_USER）"
-  [ -n "$admin_pass" ] || die "login: 需要 --admin-pass（或环境变量 NEXUS_ADMIN_PASSWORD）"
-  need curl; need jq
+  [ -n "$user" ] || die "login: 需要 --user"
 
-  local api_base resp name passcode
-  api_base="$(resolve_url)"
-  resp="$(curl -sS -m 30 -u "$admin_user:$admin_pass" -X POST \
-            "$api_base/v1/security/users/$user/token")" \
-    || die "调用 token 接口失败"
+  if [ "$pass_stdin" -eq 1 ]; then
+    IFS= read -r pass || true
+  elif [ -z "$pass" ]; then
+    if [ -t 0 ]; then
+      printf '%s 的密码（或 user token passcode）: ' "$user" >&2
+      IFS= read -rs pass || true
+      printf '\n' >&2
+    else
+      die "login: 非交互环境请用 --password-stdin（或 --password）"
+    fi
+  fi
+  [ -n "$pass" ] || die "login: 密码为空，未写入"
+  need curl
 
-  name="$(jq -r '.name // empty' <<<"$resp")"
-  passcode="$(jq -r '.passcode // empty' <<<"$resp")"
-  [ -n "$name" ] && [ -n "$passcode" ] || die "token 响应异常: $resp"
+  # 写入前校验一次，避免把错的凭据存下来后在后续操作里反复 401（还会触发 Nexus 限流）。
+  # 用 /v1/repositories 探测：401=凭据无效；403=已认证但无权限（凭据本身有效）。
+  local base code
+  base="$(resolve_url)"
+  code="$(curl -sS -m 20 -o /dev/null -w '%{http_code}' -u "$user:$pass" \
+            "$base/v1/repositories")" || die "校验凭据时网络错误"
+  case "$code" in
+    200) printf '凭据有效（HTTP 200）\n';;
+    403) printf '凭据有效，但该账号无权列出仓库（HTTP 403）—— 认证已通过，继续写入\n';;
+    401) die "凭据无效（HTTP 401）：请检查账号与密码/token passcode";;
+    429) die "Nexus 认证限流（HTTP 429，短时间多次失败尝试所致）：等几分钟再试，不要连试";;
+    *)   die "校验失败（HTTP ${code}）";;
+  esac
 
   mkdir -p "$(dirname "$CRED_FILE")"
   umask 077
   cat > "$CRED_FILE" <<EOF
-# 由 \`nexus-cli login\` 生成。Nexus user token（可吊销），勿提交、勿外泄。
-NEXUS_USER=$name
-NEXUS_PASSWORD=$passcode
+# 由 \`nexus-cli login\` 生成。勿提交、勿外泄。
+# 优先级：环境变量 NEXUS_USER / NEXUS_PASSWORD 会覆盖这里的值。
+NEXUS_USER=$user
+NEXUS_PASSWORD=$pass
 EOF
   chmod 600 "$CRED_FILE"
-  printf '已写入 %s（chmod 600）\n用户: %s\n' "$CRED_FILE" "$user"
-  printf '提示: token 与用户绑定且可吊销；吊销请用 DELETE %s/v1/security/users/%s/token\n' "$api_base" "$user"
+  printf '已写入 %s（chmod 600）\n目标: %s\n' "$CRED_FILE" "$base"
+  printf '验证: nexus-cli whoami --check\n'
 }
 
 cmd_whoami() {
