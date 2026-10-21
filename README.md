@@ -20,12 +20,18 @@ $ nexus-cli mcp          # 作为 MCP server 供 AI agent 使用
 ## 安装
 
 ```bash
-# 从 release 下载对应平台产物后放到 PATH 即可（单文件，无其他依赖）
-# 或从源码构建：
-make build            # 产出 dist/nexus-cli
-# 或
-go install gogs.wendaoji.com/wdj/nexus-cli/cmd/nexus-cli@latest
+# 方式一（推荐）：从 release 下载对应平台的单文件，放到 PATH 即可
+#   https://github.com/wendaoji/nexus-cli/releases
+#   macOS/Linux: tar xzf nexus-cli_<ver>_<os>_<arch>.tar.gz
+
+# 方式二：从源码构建
+git clone git@github.com:wendaoji/nexus-cli.git
+cd nexus-cli && make build      # 产出 dist/nexus-cli
 ```
+
+> 暂不支持 `go install <module>@latest`：模块路径是 `gogs.wendaoji.com/wdj/nexus-cli`，
+> 与 GitHub 仓库路径不一致，Go 会去 gogs 解析。需要的话把 `go.mod` 的 module 改成
+> `github.com/wendaoji/nexus-cli` 并同步替换 import 路径。
 
 首次运行会自动把内嵌 spec 落到缓存目录（`~/Library/Caches/nexus-cli` 或
 `$XDG_CACHE_HOME/nexus-cli`），以内容哈希命名，升级后自动换目录。
