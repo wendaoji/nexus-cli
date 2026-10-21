@@ -7,40 +7,43 @@ import (
 	"io"
 	"os"
 
+	"github.com/wendaoji/nexus-cli/internal/i18n"
 	"github.com/wendaoji/nexus-cli/internal/mcpserver"
 )
 
-const mcpUsage = `用法: nexus-cli mcp [--read-only | --allow-destructive] [-o 无]
+const mcpUsageEN = `Usage: nexus-cli mcp [--read-only | --allow-destructive]
 
-以 MCP server 方式运行（stdio），供 AI agent 接入。
+Runs an MCP server over stdio for AI agents.
 
-档位:
-  默认                    读操作 + 生产性写（构件上传、任务触发）
-  --read-only             仅 GET/HEAD
-  --allow-destructive     额外放开 delete*、security 变更、configuration set、script run
+Tiers:
+  default               reads plus productive writes (artifact upload, task run)
+  --read-only           GET/HEAD only
+  --allow-destructive   additionally exposes deletes, security changes,
+                        configuration set, and script run
 `
 
-// MCP 启动内嵌的 MCP server。
+func mcpUsage() string { return i18n.H("help.mcp", mcpUsageEN) }
+
+// MCP starts the embedded MCP server.
 func MCP(args []string) error {
 	fs := flag.NewFlagSet("mcp", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	var readOnly, destructive bool
-	fs.BoolVar(&readOnly, "read-only", false, "只暴露读操作")
-	fs.BoolVar(&destructive, "allow-destructive", false, "放开破坏性操作")
-	fs.Usage = func() { fmt.Fprint(os.Stderr, mcpUsage) }
+	fs.BoolVar(&readOnly, "read-only", false, "expose read operations only")
+	fs.BoolVar(&destructive, "allow-destructive", false, "expose destructive operations")
+	fs.Usage = func() { fmt.Fprint(os.Stderr, mcpUsage()) }
 
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
-			fmt.Fprint(os.Stdout, mcpUsage)
+			fmt.Fprint(os.Stdout, mcpUsage())
 			return nil
 		}
 		return err
 	}
 	if readOnly && destructive {
-		return errors.New("mcp: --read-only 与 --allow-destructive 互斥")
+		return errors.New(i18n.T("mcp: --read-only and --allow-destructive are mutually exclusive"))
 	}
 
-	// 实现在 internal/mcpserver。
 	return runMCPServer(readOnly, destructive)
 }
 

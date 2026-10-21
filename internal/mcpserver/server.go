@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/wendaoji/nexus-cli/internal/config"
+	"github.com/wendaoji/nexus-cli/internal/i18n"
 )
 
 // Options 控制暴露哪些工具。
@@ -75,7 +76,7 @@ func Serve(opt Options) error {
 	sort.Slice(tools, func(i, j int) bool { return tools[i].Name < tools[j].Name })
 
 	// 诊断信息走 stderr：stdout 必须只承载协议消息。
-	fmt.Fprintf(os.Stderr, "nexus-cli mcp: %d 个工具（read_only=%v, destructive=%v）\n",
+	fmt.Fprintf(os.Stderr, i18n.T("nexus-cli mcp: %d tools (read_only=%v, destructive=%v)")+"\n",
 		len(tools), opt.ReadOnly, opt.IncludeDestructive)
 
 	in := bufio.NewReaderSize(os.Stdin, 1<<20)
@@ -100,7 +101,7 @@ func Serve(opt Options) error {
 
 		var req rpcRequest
 		if err := json.Unmarshal(line, &req); err != nil {
-			writeErr(out, nil, -32700, "JSON 解析失败: "+err.Error())
+			writeErr(out, nil, -32700, i18n.T("failed to parse JSON: %s", err.Error()))
 			continue
 		}
 
@@ -136,7 +137,7 @@ func Serve(opt Options) error {
 			}
 		default:
 			if !isNotification {
-				writeErr(out, req.ID, -32601, "不支持的方法: "+req.Method)
+				writeErr(out, req.ID, -32601, i18n.T("unsupported method: %s", req.Method))
 			}
 		}
 

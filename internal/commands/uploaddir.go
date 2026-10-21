@@ -12,34 +12,40 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/wendaoji/nexus-cli/internal/i18n"
 	"github.com/wendaoji/nexus-cli/internal/nexus"
 )
 
-const uploadDirUsage = `用法: nexus-cli upload-dir --repo <仓库> --dir <目录> [选项]
+const uploadDirUsageEN = `Usage: nexus-cli upload-dir --repo <repo> --dir <directory> [options]
 
-批量上传一个目录。Nexus 没有批量接口，这里在客户端并发。
+Uploads a whole directory. Nexus has no batch endpoint, so this runs requests
+concurrently on the client side.
 
-  --repo <仓库>          必填
-  --dir <目录>           必填
-  --format raw|maven     默认 raw
-  --prefix <路径>        raw 模式的目录前缀，例如 /release/1.0
-  --include <glob>       只传匹配的文件（按 basename 匹配）
-  --exclude <glob>       跳过匹配的文件（按 basename 匹配）
-  --jobs N               并发数（默认 4）
-  --dry-run              只打印计划，不发送（不需要凭据）
-  -o json, --json        JSON 汇总
+  --repo <repo>        required
+  --dir <directory>    required
+  --format raw|maven   default: raw
+  --prefix <path>      directory prefix for raw, e.g. /release/1.0
+  --include <glob>     only upload files whose base name matches
+  --exclude <glob>     skip files whose base name matches
+  --jobs N             concurrency (default 4)
+  --dry-run            print the plan without sending (no credentials needed)
+  -o json, --json      JSON summary
 
-raw 模式：保留目录结构，相对路径变成 raw.directory
+raw mode keeps the directory layout:
   ./dist/docs/a.txt  ->  raw.directory=<prefix>/docs, filename=a.txt
 
-maven 模式：按 <group 路径>/<artifactId>/<version>/<文件> 推断坐标
+maven mode infers coordinates from <group path>/<artifactId>/<version>/<file>:
   ./m2/com/example/app/1.0.0/app-1.0.0.jar
     -> groupId=com.example artifactId=app version=1.0.0
-  同目录文件按「主件 → pom → 带 classifier」排序，一次请求最多 3 个 asset。
-  maven 模式默认跳过 maven-metadata*.xml（Nexus 自己维护）。
+  Files in the same directory are ordered main artifact, then pom, then
+  classifiers, with at most 3 assets per request.
+  maven mode skips maven-metadata*.xml by default.
 
-失败不会中断，全部跑完后打印失败清单；有任何失败则退出码 1。
+Failures do not stop the run; a failure list is printed at the end and the
+exit code is 1 if anything failed.
 `
+
+func uploadDirUsage() string { return i18n.H("help.upload-dir", uploadDirUsageEN) }
 
 type uploadDirOptions struct {
 	Repo    string
@@ -66,45 +72,45 @@ type uploadJob struct {
 	run   func() jobResult
 }
 
-// UploadDir 实现 nexus-cli upload-dir。
+// UploadDir implements "nexus-cli upload-dir".
 func UploadDir(args []string) error {
 	o := uploadDirOptions{Format: "raw", Jobs: 4}
 	var out outputFlags
 	fs := flag.NewFlagSet("upload-dir", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
-	fs.StringVar(&o.Repo, "repo", "", "目标仓库")
-	fs.StringVar(&o.Format, "format", "raw", "raw 或 maven")
-	fs.StringVar(&o.Dir, "dir", "", "要上传的目录")
-	fs.StringVar(&o.Prefix, "prefix", "", "raw 模式目录前缀")
-	fs.StringVar(&o.Include, "include", "", "只传匹配的文件")
-	fs.StringVar(&o.Exclude, "exclude", "", "跳过匹配的文件")
-	fs.IntVar(&o.Jobs, "jobs", 4, "并发数")
-	fs.BoolVar(&o.DryRun, "dry-run", false, "只打印计划")
+	fs.StringVar(&o.Repo, "repo", "", "target repository")
+	fs.StringVar(&o.Format, "format", "raw", "raw or maven")
+	fs.StringVar(&o.Dir, "dir", "", "directory to upload")
+	fs.StringVar(&o.Prefix, "prefix", "", "raw directory prefix")
+	fs.StringVar(&o.Include, "include", "", "only upload matching files")
+	fs.StringVar(&o.Exclude, "exclude", "", "skip matching files")
+	fs.IntVar(&o.Jobs, "jobs", 4, "concurrency")
+	fs.BoolVar(&o.DryRun, "dry-run", false, "print the plan only")
 	out.addTo(fs)
-	fs.Usage = func() { fmt.Fprint(os.Stderr, uploadDirUsage) }
+	fs.Usage = func() { fmt.Fprint(os.Stderr, uploadDirUsage()) }
 
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
-			fmt.Fprint(os.Stdout, uploadDirUsage)
+			fmt.Fprint(os.Stdout, uploadDirUsage())
 			return nil
 		}
 		return err
 	}
 	switch {
 	case o.Repo == "":
-		return errors.New("upload-dir: 需要 --repo")
+		return errors.New(i18n.T("upload-dir: --repo is required"))
 	case o.Dir == "":
-		return errors.New("upload-dir: 需要 --dir")
+		return errors.New(i18n.T("upload-dir: --dir is required"))
 	case o.Jobs < 1:
-		return errors.New("upload-dir: --jobs 需 >= 1")
+		return errors.New(i18n.T("upload-dir: --jobs must be >= 1"))
 	}
 	switch o.Format {
 	case "raw", "maven", "maven2":
 	default:
-		return fmt.Errorf("upload-dir: --format 目前支持 raw | maven，收到 %q", o.Format)
+		return fmt.Errorf("%s", i18n.T("upload-dir: --format supports raw | maven, got %q", o.Format))
 	}
 	if st, err := os.Stat(o.Dir); err != nil || !st.IsDir() {
-		return fmt.Errorf("upload-dir: 目录不存在: %s", o.Dir)
+		return fmt.Errorf("%s", i18n.T("upload-dir: no such directory: %s", o.Dir))
 	}
 
 	jobs, err := planUploadDir(o)
@@ -112,7 +118,7 @@ func UploadDir(args []string) error {
 		return err
 	}
 	if len(jobs) == 0 {
-		return errors.New("upload-dir: 没有匹配到文件（检查 --dir / --include / --exclude）")
+		return errors.New(i18n.T("upload-dir: no files matched (check --dir / --include / --exclude)"))
 	}
 
 	var results []jobResult
@@ -184,32 +190,32 @@ func UploadDir(args []string) error {
 			}
 		}
 		if o.DryRun {
-			fmt.Fprintf(w, "\n计划 %d 个目标（未发送）\n", len(results))
+			fmt.Fprintf(w, "\n%s\n", i18n.T("planned %d targets (nothing sent)", len(results)))
 			return
 		}
 		if failed > 0 {
-			fmt.Fprintln(w, "\n失败清单:")
+			fmt.Fprintln(w, "\n"+i18n.T("failures:"))
 			for _, r := range results {
 				if !r.OK && !r.Skip {
 					fmt.Fprintf(w, "  - %s: %s\n", r.Label, r.Err)
 				}
 			}
 		}
-		fmt.Fprintf(w, "\n汇总: 成功 %d / 失败 %d", ok, failed)
+		line := i18n.T("summary: %d ok / %d failed", ok, failed)
 		if skipped > 0 {
-			fmt.Fprintf(w, " / 跳过 %d", skipped)
+			line += i18n.T(" / %d skipped", skipped)
 		}
-		fmt.Fprintf(w, "（共 %d 个目标）\n", len(results))
+		fmt.Fprintf(w, "\n%s%s\n", line, i18n.T(" (%d targets)", len(results)))
 	}); err != nil {
 		return err
 	}
 	if failed > 0 {
-		return fmt.Errorf("有 %d 个目标失败", failed)
+		return fmt.Errorf("%s", i18n.T("%d targets failed", failed))
 	}
 	return nil
 }
 
-// planUploadDir 枚举并构造任务，不执行。
+// planUploadDir enumerates jobs without executing them.
 func planUploadDir(o uploadDirOptions) ([]uploadJob, error) {
 	var client *nexus.Client
 	if !o.DryRun {
@@ -279,7 +285,8 @@ func walkFiles(base string, o uploadDirOptions) ([]string, error) {
 	return out, nil
 }
 
-// shouldInclude 决定某个文件是否参与上传。枚举阶段与执行阶段共用同一规则。
+// shouldInclude decides whether a file takes part. Enumeration and execution
+// share this rule.
 func shouldInclude(name, includeGlob, excludeGlob, format string) bool {
 	switch name {
 	case ".DS_Store", ".gitignore":
@@ -323,10 +330,10 @@ func newRawJob(base, file string, o uploadDirOptions, client *nexus.Client) uplo
 		{Name: "raw.asset1", File: file},
 		{Name: "raw.asset1.filename", Value: name},
 	}
-	plan := []string{"asset: " + name}
+	plan := []string{i18n.T("asset: %s", name)}
 	if full != "" {
 		fields = append(fields, nexus.FormField{Name: "raw.directory", Value: "/" + full})
-		plan = append(plan, "directory: /"+full)
+		plan = append(plan, i18n.T("directory: /%s", full))
 	}
 
 	return uploadJob{label: rel, plan: plan, run: func() jobResult {
@@ -346,7 +353,7 @@ func newMavenJob(base, dir string, files []string, o uploadDirOptions, client *n
 	}
 	label := group + ":" + artifact + ":" + version
 
-	// 排序：主件 → pom → 带 classifier → 其它
+	// Order: main artifact, then pom, then classifiers, then anything else.
 	pre := artifact + "-" + version
 	var prim, poms, classed, other []string
 	for _, f := range files {
@@ -370,7 +377,7 @@ func newMavenJob(base, dir string, files []string, o uploadDirOptions, client *n
 	sort.Strings(other)
 	ordered := append(append(append(prim, poms...), classed...), other...)
 
-	// Nexus maven2 每次最多 3 个 asset，超出切分
+	// Nexus maven2 accepts at most 3 assets per request.
 	var chunks [][]string
 	for i := 0; i < len(ordered); i += 3 {
 		end := min(i+3, len(ordered))

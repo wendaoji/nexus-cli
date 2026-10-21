@@ -15,6 +15,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	nexuscli "github.com/wendaoji/nexus-cli"
+	"github.com/wendaoji/nexus-cli/internal/i18n"
 	"github.com/wendaoji/nexus-cli/internal/specs"
 )
 
@@ -55,18 +56,18 @@ func LoadOperations(includeDestructive bool) ([]Operation, error) {
 	}
 	vendor, err := nexuscli.SpecFS.ReadFile("spec/" + names[0])
 	if err != nil {
-		return nil, fmt.Errorf("读取 vendor spec: %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.T("read vendor spec"), err)
 	}
 	doc, err := libopenapi.NewDocument(vendor)
 	if err != nil {
-		return nil, fmt.Errorf("解析 vendor spec: %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.T("parse vendor spec"), err)
 	}
 	model, err := doc.BuildV3Model()
 	if err != nil {
-		return nil, fmt.Errorf("构建 OpenAPI 模型: %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.T("build OpenAPI model"), err)
 	}
 	if model.Model.Paths == nil || model.Model.Paths.PathItems == nil {
-		return nil, fmt.Errorf("spec 里没有 paths")
+		return nil, fmt.Errorf("%s", i18n.T("spec has no paths"))
 	}
 
 	overlays, err := loadOverlays(names[1:])
@@ -317,11 +318,11 @@ func loadOverlays(names []string) ([]map[string]any, error) {
 	for _, n := range names {
 		b, err := nexuscli.SpecFS.ReadFile("spec/" + n)
 		if err != nil {
-			return nil, fmt.Errorf("读取覆盖层 %s: %w", n, err)
+			return nil, fmt.Errorf("%s: %w", i18n.T("read overlay %s", n), err)
 		}
 		var m map[string]any
 		if err := yaml.Unmarshal(b, &m); err != nil {
-			return nil, fmt.Errorf("解析覆盖层 %s: %w", n, err)
+			return nil, fmt.Errorf("%s: %w", i18n.T("parse overlay %s", n), err)
 		}
 		out = append(out, m)
 	}

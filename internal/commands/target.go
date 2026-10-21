@@ -37,7 +37,7 @@ func newAuthedClient() (*nexus.Client, error) {
 		return nil, err
 	}
 	if !r.Complete() {
-		return nil, config.ErrNoCredentials
+		return nil, config.ErrNoCredentials()
 	}
 	return nexus.New(r.URL, r.User, r.Pass)
 }

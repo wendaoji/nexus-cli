@@ -46,13 +46,16 @@ FH="$(mktemp -d)"
 export HOME="$FH"
 export XDG_CONFIG_HOME="$FH/.config"
 export XDG_CACHE_HOME="$FH/.cache"
+# 断言基于中文输出；语言切换单独在第 9 节验证
+export NEXUS_CLI_LANG=zh
 mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME"
 trap 'rm -rf "$FH"' EXIT
 run() { "$BIN" "$@"; }
 
 # ── 1. 基本命令面 ──────────────────────────────────────────────────────────
 head_ "1. 基本命令"
-run version >/dev/null 2>&1 && ok "version" || bad "version"
+ver_out="$(run version 2>&1)"
+if grep -q "spec" <<<"$ver_out"; then ok "version 含内嵌 spec 版本"; else bad "version 未输出版本信息"; fi
 run --help >/dev/null 2>&1 && ok "--help" || bad "--help"
 run restish config path >/dev/null 2>&1 && ok "内置命令收在 restish 命名空间" || bad "restish 命名空间缺失"
 
@@ -68,7 +71,7 @@ ngroups="$(sed -n '/Additional Commands:/,/^$/p' <<<"$groups_out" | grep -cE '^ 
 # ── 3. 隐藏项 ──────────────────────────────────────────────────────────────
 head_ "3. 隐藏（Pro / 内部）"
 for kw in ldap license malicious-risk recovery-mode; do
-  if run --help 2>&1 | grep -qi -- "$kw"; then bad "'$kw' 仍出现在命令面"; else ok "'$kw' 已隐藏"; fi
+  if grep -qi -- "$kw" <<<"$groups_out"; then bad "'$kw' 仍出现在命令面"; else ok "'$kw' 已隐藏"; fi
 done
 
 # ── 4. upload 参数整形 ─────────────────────────────────────────────────────
@@ -104,7 +107,7 @@ grep -q 'classifier=sources' <<<"$out" && ok "sources 带 classifier" || bad "cl
 grep -q 'maven-metadata.xml' <<<"$out" && bad "maven-metadata.xml 未被跳过" || ok "maven-metadata.xml 已跳过"
 
 out="$(run upload-dir --repo R --dir "$ud/dist" --prefix /rel --dry-run 2>&1)"
-grep -q 'directory: /rel/docs' <<<"$out" && ok "raw 保留目录结构" || bad "raw.directory 不符预期"
+grep -q '/rel/docs' <<<"$out" && ok "raw 保留目录结构" || bad "raw.directory 不符预期: $out"
 grep -q '.DS_Store' <<<"$out" && bad ".DS_Store 未被跳过" || ok ".DS_Store 已跳过"
 
 out="$(run upload-dir --repo R --dir "$ud/dist" --exclude '*.txt' --dry-run 2>&1)"
@@ -148,7 +151,8 @@ run --context prod --url http://other.test:8081 whoami >/dev/null 2>&1 \
   && bad "地址不一致时应当失败" || ok "地址与 context 不一致时报错"
 
 run context use dev >/dev/null 2>&1 && ok "context use" || bad "context use"
-run whoami 2>&1 | grep -q 'context: dev' && ok "切换后生效" || bad "切换未生效"
+out="$(run whoami 2>&1)"
+grep -q 'context: dev' <<<"$out" && ok "切换后生效" || bad "切换未生效: $out"
 run context remove dev >/dev/null 2>&1 && ok "context remove" || bad "context remove"
 
 run --context nope whoami >/dev/null 2>&1 \
@@ -204,11 +208,28 @@ else
   skip "未设置凭据，跳过"
 fi
 
-# ── 9. 脚本 lint ───────────────────────────────────────────────────────────
+# ── 9. 语言 ────────────────────────────────────────────────────────────────
+head_ "9. 语言"
+out="$(NEXUS_CLI_LANG=en "$BIN" whoami 2>&1)"
+grep -q "account:" <<<"$out" && grep -q "address:" <<<"$out" && ok "英文输出" || bad "英文输出异常: $out"
+
+out="$(LANG=zh_CN.UTF-8 env -u NEXUS_CLI_LANG "$BIN" whoami 2>&1)"
+grep -q "账号:" <<<"$out" && grep -q "地址:" <<<"$out" && ok "LANG=zh_CN.UTF-8 切到中文" || bad "中文输出异常: $out"
+
+out="$(LC_ALL=zh_TW.UTF-8 env -u NEXUS_CLI_LANG "$BIN" whoami 2>&1)"
+grep -q "账号:" <<<"$out" && ok "LC_ALL 优先于 LANG" || bad "LC_ALL 未生效"
+
+out="$(NEXUS_CLI_LANG=en LANG=zh_CN.UTF-8 "$BIN" --lang zh whoami 2>&1)"
+grep -q "账号:" <<<"$out" && ok "--lang 优先级最高" || bad "--lang 未生效"
+
+out="$(NEXUS_CLI_LANG=en "$BIN" upload --repo R 2>&1)"
+grep -qi "required" <<<"$out" && ok "错误信息也会翻译" || bad "错误信息未翻译: $out"
+
+# ── 10. 脚本 lint ───────────────────────────────────────────────────────────
 # bash 会把多字节字符并进变量名：`$n）` 中的全角括号会成为变量名的一部分，
 # 触发 unbound variable。必须写 ${n}。开发中踩过多次，固化成检查。
 # 用 grep -E（macOS 的 BSD grep 不支持 -P，用 -P 会静默失效）；跳过注释行。
-head_ "9. 脚本 lint"
+head_ "10. 脚本 lint"
 lint_hits="$(grep -rnE '\$[A-Za-z_][A-Za-z0-9_]*[^ -~]' "$ROOT/scripts" 2>/dev/null \
   | grep -vE ':[0-9]+:[[:space:]]*#' || true)"
 if [ -n "$lint_hits" ]; then

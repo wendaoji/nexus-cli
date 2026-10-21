@@ -1,10 +1,14 @@
-// Command nexus-cli 是 Nexus Repository Manager 的 CLI。
+// Command nexus-cli is the Nexus Repository Manager CLI.
 //
-// 架构：单一静态二进制，内嵌 Restish（源码依赖）+ 内嵌 OpenAPI spec。
-//   - 生成的命令（repo/component/search/... 共 409 个操作）由嵌入的 Restish 提供
-//   - Restish 表达不了的能力（multipart 上传、context/凭据、任务轮询、MCP）由本仓库实现
+// Architecture: a single static binary that embeds Restish (as a source
+// dependency) and the OpenAPI spec.
+//   - Generated commands (repo/component/search/... - 409 operations) come from
+//     the embedded Restish
+//   - What Restish cannot express (multipart upload, contexts/credentials, task
+//     polling, MCP) is implemented in this repository
 //
-// 这样用户只需要一个文件：不需要 restish 可执行文件、jq、curl、python 或 shell。
+// Users therefore need exactly one file: no restish binary, jq, curl, python or
+// shell.
 package main
 
 import (
@@ -18,15 +22,16 @@ import (
 
 	"github.com/wendaoji/nexus-cli/internal/commands"
 	"github.com/wendaoji/nexus-cli/internal/config"
+	"github.com/wendaoji/nexus-cli/internal/i18n"
 	"github.com/wendaoji/nexus-cli/internal/nexus"
 	"github.com/wendaoji/nexus-cli/internal/specs"
 )
 
-// version 由 -ldflags "-X main.version=..." 注入（make build / goreleaser）。
+// version is injected via -ldflags "-X main.version=..." (make build / goreleaser).
 var version = "dev"
 
-// resolveVersion 在 ldflags 没注入时回退到构建信息里的模块版本。
-// 这样 `go install ...@v1.2.3` 装出来的二进制也会显示正确版本，而不是 dev。
+// resolveVersion falls back to the module version from the build info when
+// ldflags were not set, so `go install ...@v1.2.3` does not report "dev".
 func resolveVersion() string {
 	if version != "" && version != "dev" {
 		return version
@@ -42,10 +47,13 @@ func resolveVersion() string {
 const apiName = "nexus-cli"
 
 func main() {
+	// Language must be resolved before any output, including error messages.
+	i18n.Set(extractLang(os.Args[1:]))
+
 	if err := run(); err != nil {
 		fmt.Fprintf(os.Stderr, "nexus-cli: %v\n", err)
-		// task wait 超时用 124（与 coreutils timeout 一致，且不与 Restish 的
-		// 1=执行错误 / 2=用法错误 / 4=HTTP 错误冲突）。
+		// task wait timeout uses 124 (matching coreutils timeout, and not
+		// colliding with Restish's 1=error / 2=usage / 4=HTTP status).
 		var te *commands.TimeoutError
 		if errors.As(err, &te) {
 			os.Exit(124)
@@ -55,12 +63,13 @@ func main() {
 }
 
 func run() error {
-	// 全局 --context / --url 先抽出来，这样对所有子命令都生效，
-	// 包括透传给 Restish 的命令。剩下的参数才交给后续逻辑。
+	// Pull global flags first so they work for every subcommand, including the
+	// ones passed through to Restish.
 	args := extractGlobals(os.Args[1:])
 
-	// 解析一次上下文：供自有命令复用，并导出给嵌入的 Restish。
-	// login 允许 context 尚不存在（它的职责就是创建），其余命令严格校验。
+	// Resolve the context once: reuse it for our own commands and export it for
+	// the embedded Restish. login may create a context that does not exist yet;
+	// every other command validates strictly.
 	resolveFn := config.Resolve
 	if len(args) > 0 && args[0] == "login" {
 		resolveFn = config.ResolveForLogin
@@ -69,14 +78,12 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	// 只解析这一次：后续命令直接复用，避免 Restish 用的环境变量反过来污染解析。
 	commands.Current = r
-	// Restish 的 profile 用 env:NEXUS_USER / env:NEXUS_PASSWORD 取凭据，
-	// 这里把解析结果注入环境（只覆盖为空的值，不覆盖用户显式导出的）。
+	// Restish profiles read credentials from env:NEXUS_USER / env:NEXUS_PASSWORD.
 	exportCreds(r)
 
-	// 自有命令必须在进入 Restish 之前拦截：嵌入 API 只提供
-	// SetCommandName/DefaultConfig/CommandSurface 等定制点，没有 AddCommand。
+	// Our own commands must be intercepted before Restish: the embedding API
+	// only offers SetCommandName/DefaultConfig/CommandSurface, not AddCommand.
 	if handled, err := dispatch(args); handled {
 		return err
 	}
@@ -90,7 +97,7 @@ func run() error {
 	cli.SetCommandName("nexus-cli")
 	cli.SetCommandDescription(
 		"Nexus Repository Manager CLI",
-		"Nexus Repository Manager CLI —— 内嵌 Restish 与 OpenAPI spec，单文件分发。",
+		i18n.T("Nexus Repository Manager CLI - embedded Restish and OpenAPI spec, single-file distribution."),
 	)
 	cli.SetVersion(resolveVersion())
 	cli.SetDefaultConfig(&restish.Config{APIs: map[string]*restish.APIConfig{
@@ -114,16 +121,17 @@ func run() error {
 	}})
 	cli.SetCommandSurface(restish.CommandSurface{
 		PromotedAPI: apiName,
-		// 生成的命令提到根；内置命令收到 restish 命名空间下，
-		// 既避免与 Nexus 的 config 分组撞名，也保留排障入口。
+		// Generated commands move to the root; built-in commands move under the
+		// "restish" namespace so they neither collide with Nexus's "config"
+		// group nor disappear as a debugging escape hatch.
 		SupportCommandNamespace: "restish",
 	})
-	// 传抽出全局参数后的 argv（Restish 拿到的参数里不含 --context/--url）
+	// Pass argv without the global flags we consumed.
 	return cli.Run(append([]string{os.Args[0]}, args...))
 }
 
-// extractGlobals 抽出全局 --context / --url，写入 commands 包的全局变量。
-// 支持 "--flag value" 与 "--flag=value" 两种写法。
+// extractGlobals pulls --context / --url out of argv and stores them in the
+// commands package globals. Supports "--flag value" and "--flag=value".
 func extractGlobals(args []string) []string {
 	out := make([]string, 0, len(args))
 	for i := 0; i < len(args); i++ {
@@ -143,6 +151,14 @@ func extractGlobals(args []string) []string {
 			}
 		case strings.HasPrefix(a, "--url="):
 			commands.GlobalURL = strings.TrimPrefix(a, "--url=")
+		case a == "--lang":
+			// 已在 main 开头读取，这里只负责把它从 argv 里去掉，
+			// 否则会传给不识别该标志的子命令（如 version）。
+			if i+1 < len(args) {
+				i++
+			}
+		case strings.HasPrefix(a, "--lang="):
+			// 同上
 		default:
 			out = append(out, a)
 		}
@@ -150,7 +166,22 @@ func extractGlobals(args []string) []string {
 	return out
 }
 
-// exportCreds 把解析出的凭据导出到环境，供 Restish 的 env: 引用解析。
+// extractLang finds --lang / --lang=value without consuming it from argv
+// (commands may still want to see it, though currently none do).
+func extractLang(args []string) string {
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		switch {
+		case a == "--lang" && i+1 < len(args):
+			return args[i+1]
+		case strings.HasPrefix(a, "--lang="):
+			return strings.TrimPrefix(a, "--lang=")
+		}
+	}
+	return ""
+}
+
+// exportCreds exports resolved credentials for Restish's env: references.
 func exportCreds(r *config.Resolved) {
 	if r == nil {
 		return
@@ -163,7 +194,7 @@ func exportCreds(r *config.Resolved) {
 	}
 }
 
-// dispatch 拦截自有命令。返回 handled=false 表示交给 Restish。
+// dispatch intercepts our own commands. handled=false means "pass to Restish".
 func dispatch(args []string) (bool, error) {
 	if len(args) == 0 {
 		return false, nil
@@ -183,10 +214,9 @@ func dispatch(args []string) (bool, error) {
 	case "mcp":
 		return true, commands.MCP(rest)
 	case "version", "--version":
-		fmt.Printf("nexus-cli %s\n", resolveVersion())
-		return true, nil
+		return true, commands.Version(rest, resolveVersion())
 	case "task":
-		// task 组里只有 wait 是我们的，其它（list/get/run/...）交给 Restish。
+		// Only "task wait" is ours; list/get/run/... go to Restish.
 		if len(rest) > 0 && rest[0] == "wait" {
 			return true, commands.TaskWait(rest[1:])
 		}

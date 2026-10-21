@@ -1,5 +1,5 @@
-// Package commands 实现那些 Restish 表达不了、需要自己动手的命令：
-// 凭据管理、multipart 上传、批量上传、任务轮询、MCP。
+// Package commands implements everything Restish cannot express: credential and
+// context management, multipart upload, batch upload, task polling, and MCP.
 package commands
 
 import (
@@ -8,17 +8,19 @@ import (
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/wendaoji/nexus-cli/internal/i18n"
 )
 
-// outputFlags 统一处理 -o json / --json。与 Restish 的 -o 语义保持一致。
+// outputFlags handles "-o json" / "--json", matching Restish's -o semantics.
 type outputFlags struct {
 	JSON bool
 }
 
-// addTo 注册到 flag set。同时支持 --json 和 -o json。
+// addTo registers the flags on a flag set.
 func (o *outputFlags) addTo(fs *flag.FlagSet) {
-	fs.BoolVar(&o.JSON, "json", false, "以 JSON 输出")
-	fs.Func("o", "输出格式（当前支持 json）", func(v string) error {
+	fs.BoolVar(&o.JSON, "json", false, i18n.T("output as JSON"))
+	fs.Func("o", i18n.T("output format (currently json)"), func(v string) error {
 		switch v {
 		case "json":
 			o.JSON = true
@@ -26,12 +28,12 @@ func (o *outputFlags) addTo(fs *flag.FlagSet) {
 		case "", "auto":
 			return nil
 		default:
-			return fmt.Errorf("不支持的输出格式 %q（目前只支持 json）", v)
+			return fmt.Errorf("%s", i18n.T("unsupported output format %q (only json)", v))
 		}
 	})
 }
 
-// emit 输出一个结构：JSON 模式打印 JSON，否则调用 human 渲染。
+// emit writes v as JSON, or calls human for plain text.
 func emit(jsonMode bool, v any, human func(io.Writer)) error {
 	if jsonMode {
 		enc := json.NewEncoder(os.Stdout)

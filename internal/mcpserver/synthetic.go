@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/wendaoji/nexus-cli/internal/i18n"
 	"github.com/wendaoji/nexus-cli/internal/nexus"
 )
 
@@ -22,23 +23,22 @@ func componentUploadTool() syntheticTool {
 		return map[string]any{"type": "string", "description": desc}
 	}
 	props := map[string]any{
-		"repository": prop("目标仓库名"),
+		"repository": prop(i18n.T("target repository name")),
 		"format":     prop("maven|raw|yum|go|conda|composer|npm|pypi|nuget|helm|rubygems|r|apt"),
-		"file":       prop("要上传的文件绝对路径"),
-		"group":      prop("maven groupId"),
-		"artifact":   prop("maven artifactId"),
-		"version":    prop("版本"),
-		"packaging":  prop("maven packaging，默认 jar"),
-		"classifier": prop("maven classifier"),
-		"extension":  prop("扩展名，默认取自文件名"),
-		"directory":  prop("raw/yum 的目录前缀"),
-		"filename":   prop("raw/yum 的文件名，默认取自路径"),
+		"file":       prop(i18n.T("absolute path of the file to upload")),
+		"group":      prop(i18n.T("maven groupId")),
+		"artifact":   prop(i18n.T("maven artifactId")),
+		"version":    prop(i18n.T("version")),
+		"packaging":  prop(i18n.T("maven packaging, default jar")),
+		"classifier": prop(i18n.T("maven classifier")),
+		"extension":  prop(i18n.T("extension, default from the file name")),
+		"directory":  prop(i18n.T("directory prefix for raw/yum")),
+		"filename":   prop(i18n.T("file name for raw/yum, default from the path")),
 	}
 	return syntheticTool{
 		def: toolDef{
-			Name: "component_upload",
-			Description: "上传单个构件（multipart）。Nexus 的 components 接口要求字面量点号字段名，" +
-				"因此单独实现。[POST /v1/components]",
+			Name:        "component_upload",
+			Description: i18n.T("Upload one component (multipart). The Nexus components endpoint requires literal dotted field names, so this is implemented directly. [POST /v1/components]"),
 			InputSchema: map[string]any{
 				"type":       "object",
 				"properties": props,
@@ -60,7 +60,7 @@ func componentUploadTool() syntheticTool {
 				Filename:   argString(args["filename"]),
 			}
 			if repo == "" {
-				return 0, "", fmt.Errorf("缺少 repository")
+				return 0, "", fmt.Errorf("%s", i18n.T("missing repository"))
 			}
 			fields, err := nexus.BuildFields(spec)
 			if err != nil {

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+
+	"github.com/wendaoji/nexus-cli/internal/i18n"
 )
 
 // ComponentSpec 描述一次构件上传所需的坐标与文件。
@@ -49,13 +51,13 @@ func BuildFields(s ComponentSpec) ([]FormField, error) {
 	switch s.Format {
 	case "maven", "maven2":
 		if s.Group == "" {
-			return nil, errors.New("maven 需要 group")
+			return nil, errors.New(i18n.T("maven requires group"))
 		}
 		if s.Artifact == "" {
-			return nil, errors.New("maven 需要 artifact")
+			return nil, errors.New(i18n.T("maven requires artifact"))
 		}
 		if s.Version == "" {
-			return nil, errors.New("maven 需要 version")
+			return nil, errors.New(i18n.T("maven requires version"))
 		}
 		add("maven2.groupId", s.Group)
 		add("maven2.artifactId", s.Artifact)
@@ -82,7 +84,7 @@ func BuildFields(s ComponentSpec) ([]FormField, error) {
 		}
 	case "go":
 		if s.Version == "" {
-			return nil, errors.New("go 需要 version")
+			return nil, errors.New(i18n.T("go requires version"))
 		}
 		addFile("go.asset", s.File)
 		add("go.version", s.Version)
@@ -100,9 +102,9 @@ func BuildFields(s ComponentSpec) ([]FormField, error) {
 	case "npm", "pypi", "nuget", "helm", "rubygems", "r", "apt":
 		addFile(s.Format+".asset", s.File)
 	case "docker", "oci", "huggingface":
-		return nil, fmt.Errorf("%q 不走 REST 上传，请用 docker/helm push 等原生客户端", s.Format)
+		return nil, fmt.Errorf("%s", i18n.T("%q is not uploaded over REST; use a native client such as docker/helm push", s.Format))
 	default:
-		return nil, fmt.Errorf("不支持的格式 %q", s.Format)
+		return nil, fmt.Errorf("%s", i18n.T("unsupported format %q", s.Format))
 	}
 	return f, nil
 }

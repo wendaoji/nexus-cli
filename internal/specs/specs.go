@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	nexuscli "github.com/wendaoji/nexus-cli"
+	"github.com/wendaoji/nexus-cli/internal/i18n"
 )
 
 const embedDir = "spec"
@@ -57,7 +58,7 @@ func APIRoot() (string, error) {
 	}
 	b, err := nexuscli.SpecFS.ReadFile(embedDir + "/" + names[0])
 	if err != nil {
-		return "", fmt.Errorf("读取内嵌 %s: %w", names[0], err)
+		return "", fmt.Errorf("%s: %w", i18n.T("read embedded %s", names[0]), err)
 	}
 	var doc struct {
 		Servers []struct {
@@ -65,7 +66,7 @@ func APIRoot() (string, error) {
 		} `json:"servers"`
 	}
 	if err := json.Unmarshal(b, &doc); err != nil {
-		return "", fmt.Errorf("解析 %s 的 servers: %w", names[0], err)
+		return "", fmt.Errorf("%s: %w", i18n.T("parse servers of %s", names[0]), err)
 	}
 	for _, s := range doc.Servers {
 		if s.URL != "" {
@@ -79,7 +80,7 @@ func APIRoot() (string, error) {
 func embeddedNames() ([]string, error) {
 	entries, err := fs.ReadDir(nexuscli.SpecFS, embedDir)
 	if err != nil {
-		return nil, fmt.Errorf("读取内嵌 spec 目录: %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.T("read embedded spec dir"), err)
 	}
 
 	var vendor []string
@@ -96,7 +97,7 @@ func embeddedNames() ([]string, error) {
 		rest[name] = true
 	}
 	if len(vendor) != 1 {
-		return nil, fmt.Errorf("期望恰好一个 vendor spec (.json)，实际 %d 个: %v", len(vendor), vendor)
+		return nil, fmt.Errorf("%s", i18n.T("expected exactly one vendor spec (.json), got %d: %v", len(vendor), vendor))
 	}
 
 	names := append([]string{}, vendor...)
@@ -122,7 +123,7 @@ func materialize(names []string) (string, error) {
 	for i, n := range names {
 		b, err := nexuscli.SpecFS.ReadFile(embedDir + "/" + n)
 		if err != nil {
-			return "", fmt.Errorf("读取内嵌 %s: %w", n, err)
+			return "", fmt.Errorf("%s: %w", i18n.T("read embedded %s", n), err)
 		}
 		blobs[i] = b
 		_, _ = h.Write([]byte(n))
@@ -135,11 +136,11 @@ func materialize(names []string) (string, error) {
 		return dir, nil
 	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return "", fmt.Errorf("创建缓存目录 %s: %w", dir, err)
+		return "", fmt.Errorf("%s: %w", i18n.T("create cache dir %s", dir), err)
 	}
 	for i, n := range names {
 		if err := os.WriteFile(filepath.Join(dir, n), blobs[i], 0o644); err != nil {
-			return "", fmt.Errorf("写入缓存 %s: %w", n, err)
+			return "", fmt.Errorf("%s: %w", i18n.T("write cache %s", n), err)
 		}
 	}
 	return dir, nil

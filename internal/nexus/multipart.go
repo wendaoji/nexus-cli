@@ -10,6 +10,8 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+
+	"github.com/wendaoji/nexus-cli/internal/i18n"
 )
 
 // FormField 是一个 multipart 字段。File 非空表示文件部件。
@@ -54,7 +56,7 @@ func (c *Client) PostComponent(ctx context.Context, repo string, fields []FormFi
 	path := "/v1/components?repository=" + url.QueryEscape(repo)
 	resp, err := c.Do(ctx, http.MethodPost, path, &buf, mw.FormDataContentType())
 	if err != nil {
-		return 0, nil, fmt.Errorf("请求失败: %w", err)
+		return 0, nil, fmt.Errorf("%s: %w", i18n.T("request failed"), err)
 	}
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 8192))

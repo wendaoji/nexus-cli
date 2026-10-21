@@ -23,6 +23,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/wendaoji/nexus-cli/internal/i18n"
 )
 
 const (
@@ -50,12 +52,12 @@ type Config struct {
 
 // 解析来源，用于 whoami 展示与排障。
 const (
-	FromFlag    = "命令行参数"
-	FromEnv     = "环境变量"
+	FromFlag    = "flag"
+	FromEnv     = "env"
 	FromContext = "context"
 	FromCurrent = "current"
-	FromAutoURL = "按地址自动匹配"
-	FromDefault = "编译期默认值"
+	FromAutoURL = "auto-url"
+	FromDefault = "default"
 )
 
 // Resolved 是一次解析的最终结果。
@@ -100,11 +102,11 @@ func Load() (*Config, error) {
 		if os.IsNotExist(err) {
 			return migrateLegacy()
 		}
-		return nil, fmt.Errorf("读取 %s: %w", Path(), err)
+		return nil, fmt.Errorf("%s: %w", i18n.T("read %s", Path()), err)
 	}
 	var c Config
 	if err := json.Unmarshal(b, &c); err != nil {
-		return nil, fmt.Errorf("解析 %s: %w", Path(), err)
+		return nil, fmt.Errorf("%s: %w", i18n.T("parse %s", Path()), err)
 	}
 	if c.Contexts == nil {
 		c.Contexts = map[string]*Context{}
@@ -115,7 +117,7 @@ func Load() (*Config, error) {
 // Save 以 0600 原子写入配置。
 func Save(c *Config) error {
 	if err := os.MkdirAll(Dir(), 0o700); err != nil {
-		return fmt.Errorf("创建目录 %s: %w", Dir(), err)
+		return fmt.Errorf("%s: %w", i18n.T("create directory %s", Dir()), err)
 	}
 	b, err := json.MarshalIndent(c, "", "  ")
 	if err != nil {
@@ -125,7 +127,7 @@ func Save(c *Config) error {
 
 	tmp, err := os.CreateTemp(Dir(), ".config-*.tmp")
 	if err != nil {
-		return fmt.Errorf("写入 %s: %w", Path(), err)
+		return fmt.Errorf("%s: %w", i18n.T("write %s", Path()), err)
 	}
 	defer os.Remove(tmp.Name())
 	if err := tmp.Chmod(0o600); err != nil {
@@ -220,7 +222,7 @@ func resolve(contextFlag, urlFlag, defaultOrigin string, allowMissingContext boo
 		r.Context = explicitCtx
 		r.ContextFrom = ctxFrom
 		if _, ok := cfg.Contexts[r.Context]; !ok && !allowMissingContext {
-			return nil, fmt.Errorf("context %q 不存在（先用 `nexus-cli login --context %s` 创建）", r.Context, r.Context)
+			return nil, fmt.Errorf("%s", i18n.T("context %q does not exist (create it with `nexus-cli login --context %s`)", r.Context, r.Context))
 		}
 	case explicitURL != "":
 		// 按地址自动匹配已有 context
@@ -318,12 +320,12 @@ func migrateLegacy() (*Config, error) {
 	backup := LegacyPath() + ".migrated"
 	if err := os.Rename(LegacyPath(), backup); err != nil {
 		// 迁移本身已成功，备份失败只提示，不算错误
-		fmt.Fprintf(os.Stderr, "nexus-cli: 旧凭据文件已迁移，但备份失败（%v）；请手动处理 %s\n", err, LegacyPath())
+		fmt.Fprintf(os.Stderr, "nexus-cli: %s\n", i18n.T("legacy credentials migrated, but the backup failed (%v); handle %s manually", err, LegacyPath()))
 		return cfg, nil
 	}
-	fmt.Fprintf(os.Stderr, "nexus-cli: 已把 %s 迁移为 context %q；旧文件备份在 %s\n",
+	fmt.Fprintf(os.Stderr, "nexus-cli: "+i18n.T("migrated %s into context %q; the old file is backed up at %s")+"\n",
 		LegacyPath(), DefaultContext, backup)
-	fmt.Fprintln(os.Stderr, "          如需指定该 context 的目标地址，重跑 `nexus-cli login --context default --url <地址>`")
+	fmt.Fprintf(os.Stderr, "          %s\n", i18n.T("to pin that context to an address, rerun `nexus-cli login --context default --url <url>`"))
 	return cfg, nil
 }
 
@@ -333,7 +335,7 @@ func readLegacy(path string) (user, pass string, ok bool, err error) {
 		if os.IsNotExist(err) {
 			return "", "", false, nil
 		}
-		return "", "", false, fmt.Errorf("读取 %s: %w", path, err)
+		return "", "", false, fmt.Errorf("%s: %w", i18n.T("read %s", path), err)
 	}
 	for _, line := range strings.Split(string(b), "\n") {
 		line = strings.TrimSpace(line)
@@ -357,6 +359,8 @@ func readLegacy(path string) (user, pass string, ok bool, err error) {
 	return user, pass, true, nil
 }
 
-// ErrNoCredentials 是「没配置任何凭据」时的统一错误。
-var ErrNoCredentials = errors.New(
-	"缺少凭据：运行 `nexus-cli login --user <账号>`，或设置 NEXUS_USER / NEXUS_PASSWORD")
+// ErrNoCredentials returns the shared "nothing configured" error.
+// It is a function so the message follows the language chosen at startup.
+func ErrNoCredentials() error {
+	return errors.New(i18n.T("missing credentials: run `nexus-cli login --user <account>`, or set NEXUS_USER / NEXUS_PASSWORD"))
+}

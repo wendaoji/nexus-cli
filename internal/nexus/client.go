@@ -1,7 +1,8 @@
-// Package nexus 是与 Nexus REST API 通讯的最小客户端。
+// Package nexus is a minimal client for the Nexus REST API.
 //
-// 只覆盖 Restish 表达不了的那几件事（multipart 上传、凭据校验、任务轮询所需的
-// 少量读取）。其余全部交给嵌入的 Restish，避免重复实现。
+// It only covers what Restish cannot express (multipart upload, credential
+// checks, small reads for task polling). Everything else is delegated to the
+// embedded Restish so we never reimplement it.
 package nexus
 
 import (
@@ -12,24 +13,26 @@ import (
 	"strings"
 	"time"
 
-	nexuscli "github.com/wendaoji/nexus-cli"
+	"github.com/wendaoji/nexus-cli"
+	"github.com/wendaoji/nexus-cli/internal/i18n"
 	"github.com/wendaoji/nexus-cli/internal/specs"
 )
 
-// DefaultOrigin 是编译期默认目标，来自 config/default-origin.txt（随二进制内嵌）。
-// 运行时由 config.Resolve 按优先级覆盖。
+// DefaultOrigin is the build-time default target, taken from
+// config/default-origin.txt (embedded into the binary). config.Resolve may
+// override it at run time.
 var DefaultOrigin = strings.TrimSpace(nexuscli.DefaultOriginText)
 
-// Client 是一个带 Basic 认证的 Nexus 客户端。
+// Client is a Nexus client authenticated with HTTP Basic.
 type Client struct {
-	Origin  string // 例如 http://host:8081
-	APIRoot string // 例如 /service/rest
+	Origin  string // e.g. http://host:8081
+	APIRoot string // e.g. /service/rest
 	User    string
 	Pass    string
 	HTTP    *http.Client
 }
 
-// New 用解析好的目标地址与凭据构造客户端。
+// New builds a client from an already-resolved origin and credentials.
 func New(origin, user, pass string) (*Client, error) {
 	root, err := specs.APIRoot()
 	if err != nil {
@@ -44,7 +47,7 @@ func New(origin, user, pass string) (*Client, error) {
 	}, nil
 }
 
-// URL 拼接完整请求地址。path 需以 "/" 开头，例如 "/v1/repositories"。
+// URL joins the full request URL. path must start with "/", e.g. "/v1/repositories".
 func (c *Client) URL(path string) string {
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
@@ -52,7 +55,7 @@ func (c *Client) URL(path string) string {
 	return c.Origin + c.APIRoot + path
 }
 
-// Do 发起一次带认证的请求。调用方负责关闭 resp.Body。
+// Do performs one authenticated request. The caller closes resp.Body.
 func (c *Client) Do(ctx context.Context, method, path string, body io.Reader, contentType string) (*http.Response, error) {
 	req, err := http.NewRequestWithContext(ctx, method, c.URL(path), body)
 	if err != nil {
@@ -68,38 +71,40 @@ func (c *Client) Do(ctx context.Context, method, path string, body io.Reader, co
 	return c.HTTP.Do(req)
 }
 
-// CheckResult 描述一次凭据校验的结论。
+// CheckResult describes the outcome of a credential check.
 type CheckResult struct {
 	Status   int
 	Verbatim string
 }
 
-// Valid 表示认证是否通过。403 说明已认证但无权限，凭据本身有效。
+// Valid reports whether authentication succeeded. 403 means the credentials
+// are fine but the account lacks permission.
 func (r CheckResult) Valid() bool { return r.Status == 200 || r.Status == 403 }
 
-// Check 用 GET /v1/repositories 校验凭据：401=无效，403=有效但无权限。
+// Check validates credentials with GET /v1/repositories:
+// 401 = invalid, 403 = valid but no permission.
 func (c *Client) Check(ctx context.Context) (CheckResult, error) {
 	resp, err := c.Do(ctx, http.MethodGet, "/v1/repositories", nil, "")
 	if err != nil {
-		return CheckResult{}, fmt.Errorf("校验凭据时网络错误: %w", err)
+		return CheckResult{}, fmt.Errorf("%s: %w", i18n.T("network error while validating credentials"), err)
 	}
 	defer resp.Body.Close()
 	raw, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
 	return CheckResult{Status: resp.StatusCode, Verbatim: strings.TrimSpace(string(raw))}, nil
 }
 
-// ExplainCheck 把校验结果翻译成给人看的一句话。
+// ExplainCheck turns a check result into a human-readable sentence.
 func ExplainCheck(r CheckResult) string {
 	switch {
 	case r.Status == 200:
-		return "凭据有效（HTTP 200）"
+		return i18n.T("Credentials valid (HTTP 200)")
 	case r.Status == 403:
-		return "凭据有效，但该账号无权列出仓库（HTTP 403）—— 认证已通过"
+		return i18n.T("Credentials valid, but this account cannot list repositories (HTTP 403) - authenticated")
 	case r.Status == 401:
-		return "凭据无效（HTTP 401）：请检查账号与密码/token passcode"
+		return i18n.T("Invalid credentials (HTTP 401): check the username and password/token passcode")
 	case r.Status == 429:
-		return "Nexus 认证限流（HTTP 429，短时间多次失败尝试所致）：等几分钟再试，不要连试"
+		return i18n.T("Nexus is rate-limiting authentication (HTTP 429, too many failed attempts): wait a few minutes")
 	default:
-		return fmt.Sprintf("校验失败（HTTP %d）", r.Status)
+		return i18n.T("Check failed (HTTP %d)", r.Status)
 	}
 }

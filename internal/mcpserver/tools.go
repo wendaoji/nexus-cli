@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/wendaoji/nexus-cli/internal/config"
+	"github.com/wendaoji/nexus-cli/internal/i18n"
 	"github.com/wendaoji/nexus-cli/internal/nexus"
 )
 
@@ -65,7 +66,7 @@ func buildTool(op *Operation) toolDef {
 		}
 	} else if op.BodySchema != nil {
 		props["body"] = map[string]any{
-			"description": "请求体（JSON）",
+			"description": i18n.T("request body (JSON)"),
 			"x-in":        "body",
 		}
 		if op.BodyRequired {
@@ -79,7 +80,7 @@ func buildTool(op *Operation) toolDef {
 	}
 	desc = fmt.Sprintf("%s  [%s %s]", desc, op.Method, op.Path)
 	if op.Destructive {
-		desc += "  ⚠ 破坏性操作"
+		desc += i18n.T("  ⚠ destructive operation")
 	}
 
 	return toolDef{
@@ -127,12 +128,12 @@ func handleCall(byName map[string]*Operation, synByName map[string]syntheticTool
 		Arguments map[string]any `json:"arguments"`
 	}
 	if err := json.Unmarshal(raw, &p); err != nil {
-		return toolError("参数解析失败: " + err.Error())
+		return toolError(i18n.T("failed to parse arguments: %s", err.Error()))
 	}
 	op, isOp := byName[p.Name]
 	syn, isSyn := synByName[p.Name]
 	if !isOp && !isSyn {
-		return toolError("未知工具: " + p.Name)
+		return toolError(i18n.T("unknown tool: %s", p.Name))
 	}
 	if p.Arguments == nil {
 		p.Arguments = map[string]any{}
@@ -143,11 +144,11 @@ func handleCall(byName map[string]*Operation, synByName map[string]syntheticTool
 		var err error
 		r, err = config.Resolve("", "", nexus.DefaultOrigin)
 		if err != nil {
-			return toolError("解析 context 失败: " + err.Error())
+			return toolError(i18n.T("failed to resolve context: %s", err.Error()))
 		}
 	}
 	if !r.Complete() {
-		return toolError(config.ErrNoCredentials.Error())
+		return toolError(config.ErrNoCredentials().Error())
 	}
 	c, err := nexus.New(r.URL, r.User, r.Pass)
 	if err != nil {
@@ -206,7 +207,7 @@ func execute(c *nexus.Client, op *Operation, args map[string]any) (int, string, 
 			bodyArgs = nil
 			b, err := json.Marshal(raw)
 			if err != nil {
-				return 0, "", fmt.Errorf("序列化 body: %w", err)
+				return 0, "", fmt.Errorf("%s: %w", i18n.T("encode body"), err)
 			}
 			return send(c, op, path, q, headers, b)
 		}
@@ -222,7 +223,7 @@ func execute(c *nexus.Client, op *Operation, args map[string]any) (int, string, 
 	if len(bodyArgs) > 0 {
 		b, err := json.Marshal(bodyArgs)
 		if err != nil {
-			return 0, "", fmt.Errorf("序列化请求体: %w", err)
+			return 0, "", fmt.Errorf("%s: %w", i18n.T("encode request body"), err)
 		}
 		return send(c, op, path, q, headers, b)
 	}
@@ -254,7 +255,7 @@ func send(c *nexus.Client, op *Operation, path string, q url.Values, headers map
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
-		return 0, "", fmt.Errorf("请求失败: %w", err)
+		return 0, "", fmt.Errorf("%s: %w", i18n.T("request failed"), err)
 	}
 	defer resp.Body.Close()
 	raw, _ := io.ReadAll(io.LimitReader(resp.Body, 256<<10))

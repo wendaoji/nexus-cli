@@ -12,33 +12,40 @@ import (
 	"golang.org/x/term"
 
 	"github.com/wendaoji/nexus-cli/internal/config"
+	"github.com/wendaoji/nexus-cli/internal/i18n"
 	"github.com/wendaoji/nexus-cli/internal/nexus"
 )
 
-const loginUsage = `用法: nexus-cli login --user <账号> [--password <密码> | --password-stdin]
-                       [--url <地址>] [--context <名字>]
+const loginUsageEN = `Usage: nexus-cli login --user <account> [--password <password> | --password-stdin]
+                      [--url <url>] [--context <name>]
 
-把目标地址与凭据写入 context（配置文件 ~/.config/nexus-cli/config.json，0600）。
-写入前会先校验一次。
+Stores a target address and credentials as a context in
+$XDG_CONFIG_HOME/nexus-cli/config.json (mode 0600), after validating them.
 
-  --user <账号>          要保存的账号（建议专用只读账号）
-  --password <密码>      直接给密码；会出现在 ps / shell history 里
-  --password-stdin       从 stdin 读密码（适合脚本/CI）
-  --url <地址>           目标地址；默认取 NEXUS_URL / 当前 context / 编译期默认值
-  --context <名字>       context 名；默认取「按地址匹配到的」或当前 context 或 default
-  -o json, --json        JSON 输出
+  --user <account>       Account to store (a dedicated read-only account is best)
+  --password <password>  Password/token passcode; visible in ps and shell history
+  --password-stdin       Read the password from stdin (scripts/CI)
+  --url <url>            Target address; defaults to NEXUS_URL, the current
+                         context, or the build-time default
+  --context <name>       Context name; defaults to the context matched by URL,
+                         the current context, or "default"
+  -o json, --json        JSON output
 
-示例:
-  nexus-cli login --user ci-readonly                          # 登录默认目标
+Examples:
+  nexus-cli login --user ci-readonly
   nexus-cli login --url http://dev:8081 --user ci --context dev
   nexus-cli context use dev
 
-关于 token：
-  Nexus 的 User Token 是 Pro 专属功能（Community 版没有该接口，调用会 404）。
-  若你在 Pro 版或 Web UI 里拿到了 user token，直接把它当 --password 传入即可。
+About tokens:
+  Nexus user tokens are a Pro-only feature (the Community edition has no such
+  endpoint and returns 404). If you have a user token from a Pro instance or
+  the web UI, pass it as --password: Nexus uses "<token name>:<passcode>" in
+  place of "<user>:<password>" for Basic auth.
 `
 
-// Login 保存并校验一个 context 的地址与凭据。
+func loginUsage() string { return i18n.H("help.login", loginUsageEN) }
+
+// Login stores and validates one context.
 func Login(args []string) error {
 	fs := flag.NewFlagSet("login", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
@@ -48,46 +55,46 @@ func Login(args []string) error {
 		passStdin bool
 		out       outputFlags
 	)
-	fs.StringVar(&user, "user", "", "账号")
-	fs.StringVar(&pass, "password", "", "密码或 user token passcode")
-	fs.BoolVar(&passStdin, "password-stdin", false, "从 stdin 读取密码")
+	fs.StringVar(&user, "user", "", "account")
+	fs.StringVar(&pass, "password", "", "password or user token passcode")
+	fs.BoolVar(&passStdin, "password-stdin", false, "read the password from stdin")
 	out.addTo(fs)
-	fs.Usage = func() { fmt.Fprint(os.Stderr, loginUsage) }
+	fs.Usage = func() { fmt.Fprint(os.Stderr, loginUsage()) }
 
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
-			fmt.Fprint(os.Stdout, loginUsage)
+			fmt.Fprint(os.Stdout, loginUsage())
 			return nil
 		}
 		return err
 	}
 	if fs.NArg() > 0 {
-		return fmt.Errorf("login: 多余的参数 %q（--help 看用法）", fs.Arg(0))
+		return fmt.Errorf("%s", i18n.T("login: unexpected argument %q (see --help)", fs.Arg(0)))
 	}
 	if strings.TrimSpace(user) == "" {
-		return errors.New("login: 需要 --user")
+		return errors.New(i18n.T("login: --user is required"))
 	}
 
 	if passStdin {
 		b, err := io.ReadAll(os.Stdin)
 		if err != nil {
-			return fmt.Errorf("读取 stdin: %w", err)
+			return fmt.Errorf("%s: %w", i18n.T("read stdin"), err)
 		}
 		pass = strings.TrimRight(string(b), "\r\n")
 	} else if pass == "" {
 		if !term.IsTerminal(int(os.Stdin.Fd())) {
-			return errors.New("login: 非交互环境请用 --password-stdin（或 --password）")
+			return errors.New(i18n.T("login: non-interactive input, use --password-stdin (or --password)"))
 		}
-		fmt.Fprintf(os.Stderr, "%s 的密码（或 user token passcode）: ", user)
+		fmt.Fprintf(os.Stderr, i18n.T("Password (or user token passcode) for %s: "), user)
 		b, err := term.ReadPassword(int(os.Stdin.Fd()))
 		fmt.Fprintln(os.Stderr)
 		if err != nil {
-			return fmt.Errorf("读取密码: %w", err)
+			return fmt.Errorf("%s: %w", i18n.T("read password"), err)
 		}
 		pass = string(b)
 	}
 	if pass == "" {
-		return errors.New("login: 密码为空，未写入")
+		return errors.New(i18n.T("login: empty password, nothing written"))
 	}
 
 	r, err := resolveTarget()
@@ -95,7 +102,8 @@ func Login(args []string) error {
 		return err
 	}
 
-	// 写入前先校验，避免把错凭据存下来后到处 401（还会触发 Nexus 限流）。
+	// Validate before writing, so a bad credential never reaches disk and keeps
+	// triggering 401s (and Nexus auth rate limiting).
 	c, err := nexus.New(r.URL, user, pass)
 	if err != nil {
 		return err
@@ -121,7 +129,8 @@ func Login(args []string) error {
 		return err
 	}
 	if prev := cfg.Contexts[name]; prev != nil && prev.URL != "" && normalize(prev.URL) != normalize(r.URL) {
-		fmt.Fprintf(os.Stderr, "nexus-cli: context %q 的地址由 %s 更新为 %s\n", name, prev.URL, r.URL)
+		fmt.Fprintf(os.Stderr, "nexus-cli: %s\n",
+			i18n.T("context %q address changed from %s to %s", name, prev.URL, r.URL))
 	}
 	cfg.Set(name, &config.Context{URL: r.URL, User: user, Password: pass})
 	if cfg.Current == "" {
@@ -145,23 +154,27 @@ func Login(args []string) error {
 	}
 	return emit(out.JSON, res2, func(w io.Writer) {
 		fmt.Fprintln(w, res2.Checked)
-		fmt.Fprintf(w, "context: %s%s\n", name, currentMark(res2.IsCurrent))
-		fmt.Fprintf(w, "已写入 %s（chmod 600）\n目标: %s\n", res2.ConfigPath, res2.URL)
+		fmt.Fprintf(w, "%s\n", i18n.T("context: %s%s", name, currentMark(res2.IsCurrent)))
+		fmt.Fprintf(w, "%s\n", i18n.T("wrote %s (mode 0600)", res2.ConfigPath))
+		fmt.Fprintf(w, "%s\n", i18n.T("target: %s", res2.URL))
 		if !res2.IsCurrent {
-			fmt.Fprintf(w, "切换: nexus-cli context use %s\n", name)
+			fmt.Fprintf(w, "%s\n", i18n.T("switch to it: nexus-cli context use %s", name))
 		}
 	})
 }
 
-const whoamiUsage = `用法: nexus-cli whoami [--context <名字>] [--url <地址>] [--check] [-o json]
+const whoamiUsageEN = `Usage: nexus-cli whoami [--context <name>] [--url <url>] [--check] [-o json]
 
-显示当前生效的 context、目标地址与凭据来源。
-  --context <名字>   查看指定 context
-  --url <地址>       按指定地址解析
-  --check            再请求一次接口确认凭据可用
+Shows the effective context, target address, and where each value comes from.
+
+  --context <name>   Inspect a specific context
+  --url <url>        Resolve against a specific address
+  --check            Make one request to confirm the credentials work
 `
 
-// Whoami 展示生效的上下文。
+func whoamiUsage() string { return i18n.H("help.whoami", whoamiUsageEN) }
+
+// Whoami reports the effective context.
 func Whoami(args []string) error {
 	fs := flag.NewFlagSet("whoami", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
@@ -169,13 +182,13 @@ func Whoami(args []string) error {
 		check bool
 		out   outputFlags
 	)
-	fs.BoolVar(&check, "check", false, "验证连通性")
+	fs.BoolVar(&check, "check", false, "verify connectivity")
 	out.addTo(fs)
-	fs.Usage = func() { fmt.Fprint(os.Stderr, whoamiUsage) }
+	fs.Usage = func() { fmt.Fprint(os.Stderr, whoamiUsage()) }
 
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
-			fmt.Fprint(os.Stdout, whoamiUsage)
+			fmt.Fprint(os.Stdout, whoamiUsage())
 			return nil
 		}
 		return err
@@ -202,6 +215,7 @@ func Whoami(args []string) error {
 		Contexts    []string `json:"contexts"`
 		Mismatch    string   `json:"mismatch,omitempty"`
 		Check       string   `json:"check,omitempty"`
+		Lang        string   `json:"lang"`
 	}{
 		Context:     r.Context,
 		ContextFrom: r.ContextFrom,
@@ -212,10 +226,12 @@ func Whoami(args []string) error {
 		PasswordSet: r.Pass != "",
 		ConfigPath:  r.ConfigPath,
 		Contexts:    cfg.Names(),
+		Lang:        string(i18n.Current()),
 	}
-	// 地址与 context 记录不一致时明确提示，避免拿 A 的凭据打 B
+	// Warn when the target differs from what the context recorded, so credentials
+	// for A are never silently sent to B.
 	if r.ContextURL != "" && normalize(r.ContextURL) != normalize(r.URL) {
-		info.Mismatch = fmt.Sprintf("context %q 记录的是 %s，本次目标是 %s", r.Context, r.ContextURL, r.URL)
+		info.Mismatch = i18n.T("context %q records %s but the target is %s", r.Context, r.ContextURL, r.URL)
 	}
 
 	if check {
@@ -225,7 +241,7 @@ func Whoami(args []string) error {
 		}
 		res, err := c.Check(context.Background())
 		if err != nil {
-			info.Check = "失败: " + err.Error()
+			info.Check = i18n.T("failed: %s", err.Error())
 		} else {
 			info.Check = nexus.ExplainCheck(res)
 		}
@@ -234,58 +250,60 @@ func Whoami(args []string) error {
 	err = emit(out.JSON, info, func(w io.Writer) {
 		ctx := r.Context
 		if ctx == "" {
-			ctx = "<无>"
+			ctx = i18n.T("<none>")
 		}
-		fmt.Fprintf(w, "context: %s%s\n", ctx, from(r.ContextFrom))
-		fmt.Fprintf(w, "地址: %s%s\n", r.URL, from(r.URLFrom))
-		fmt.Fprintf(w, "账号: %s%s\n", orUnset(info.User), from(r.CredFrom))
+		fmt.Fprintf(w, "%s\n", i18n.T("context: %s%s", ctx, from(r.ContextFrom)))
+		fmt.Fprintf(w, "%s\n", i18n.T("address: %s%s", r.URL, from(r.URLFrom)))
+		fmt.Fprintf(w, "%s\n", i18n.T("account: %s%s", orUnset(info.User), from(r.CredFrom)))
 		if info.PasswordSet {
-			fmt.Fprintln(w, "密码: 已设置")
+			fmt.Fprintln(w, i18n.T("password: set"))
 		} else {
-			fmt.Fprintln(w, "密码: <未设置>")
+			fmt.Fprintln(w, i18n.T("password: <unset>"))
 		}
-		fmt.Fprintf(w, "配置文件: %s\n", r.ConfigPath)
+		fmt.Fprintf(w, "%s\n", i18n.T("config file: %s", r.ConfigPath))
 		if len(info.Contexts) > 0 {
-			fmt.Fprintf(w, "所有 context: %s（current=%s）\n", strings.Join(info.Contexts, ", "), orUnset(cfg.Current))
+			fmt.Fprintf(w, "%s\n", i18n.T("contexts: %s (current=%s)", strings.Join(info.Contexts, ", "), orUnset(cfg.Current)))
 		}
 		if info.Mismatch != "" {
 			fmt.Fprintf(w, "⚠ %s\n", info.Mismatch)
 		}
 		if info.Check != "" {
-			fmt.Fprintf(w, "连通性: %s\n", info.Check)
+			fmt.Fprintf(w, "%s\n", i18n.T("connectivity: %s", info.Check))
 		}
 	})
 	if err != nil {
 		return err
 	}
 	if info.Mismatch != "" {
-		return fmt.Errorf("目标地址与 context 记录不一致（见上）")
+		return errors.New(i18n.T("target address does not match the context record (see above)"))
 	}
-	if check && !strings.Contains(info.Check, "有效") {
-		return errors.New("连通性检查未通过")
+	if check && !strings.Contains(info.Check, i18n.T("valid")) {
+		return errors.New(i18n.T("connectivity check failed"))
 	}
 	return nil
 }
 
-const contextUsage = `用法: nexus-cli context <子命令>
+const contextUsageEN = `Usage: nexus-cli context <subcommand>
 
-  context list              列出所有 context（* 为当前）
-  context use <名字>        切换当前 context
-  context show [名字]       查看某个 context（不填则当前）
-  context remove <名字>     删除 context
-  -o json, --json           JSON 输出
+  context list              List all contexts (* marks the current one)
+  context use <name>        Switch the current context
+  context show [name]       Inspect a context (defaults to the current one)
+  context remove <name>     Delete a context
+  -o json, --json           JSON output
 `
 
-// ContextCmd 实现 context 子命令。
+func contextUsage() string { return i18n.H("help.context", contextUsageEN) }
+
+// ContextCmd implements the context subcommands.
 func ContextCmd(args []string) error {
 	if len(args) == 0 {
-		fmt.Fprint(os.Stderr, contextUsage)
-		return errors.New("context: 需要子命令")
+		fmt.Fprint(os.Stderr, contextUsage())
+		return errors.New(i18n.T("context: a subcommand is required"))
 	}
 	sub, rest := args[0], args[1:]
 	switch sub {
 	case "-h", "--help", "help":
-		fmt.Fprint(os.Stdout, contextUsage)
+		fmt.Fprint(os.Stdout, contextUsage())
 		return nil
 	case "list", "ls":
 		return contextList(rest)
@@ -296,7 +314,7 @@ func ContextCmd(args []string) error {
 	case "remove", "rm":
 		return contextRemove(rest)
 	default:
-		return fmt.Errorf("context: 未知子命令 %q（--help 看用法）", sub)
+		return fmt.Errorf("%s", i18n.T("context: unknown subcommand %q (see --help)", sub))
 	}
 }
 
@@ -326,7 +344,7 @@ func contextList(args []string) error {
 	}
 	return emit(out.JSON, map[string]any{"current": cfg.Current, "contexts": rows}, func(w io.Writer) {
 		if len(rows) == 0 {
-			fmt.Fprintln(w, "还没有任何 context。运行 `nexus-cli login --user <账号>` 创建。")
+			fmt.Fprintln(w, i18n.T("No contexts yet. Run `nexus-cli login --user <account>` to create one."))
 			return
 		}
 		for _, r := range rows {
@@ -348,7 +366,7 @@ func contextUse(args []string) error {
 		return err
 	}
 	if fs.NArg() != 1 {
-		return errors.New("用法: nexus-cli context use <名字>")
+		return errors.New(i18n.T("usage: nexus-cli context use <name>"))
 	}
 	name := fs.Arg(0)
 	cfg, err := config.Load()
@@ -357,14 +375,14 @@ func contextUse(args []string) error {
 	}
 	ctx, ok := cfg.Contexts[name]
 	if !ok {
-		return fmt.Errorf("context %q 不存在（现有: %s）", name, strings.Join(cfg.Names(), ", "))
+		return fmt.Errorf("%s", i18n.T("context %q does not exist (existing: %s)", name, strings.Join(cfg.Names(), ", ")))
 	}
 	cfg.Current = name
 	if err := config.Save(cfg); err != nil {
 		return err
 	}
 	return emit(out.JSON, map[string]string{"current": name, "url": ctx.URL}, func(w io.Writer) {
-		fmt.Fprintf(w, "已切换到 context %q（%s）\n", name, orUnset(ctx.URL))
+		fmt.Fprintln(w, i18n.T("switched to context %q (%s)", name, orUnset(ctx.URL)))
 	})
 }
 
@@ -385,11 +403,11 @@ func contextShow(args []string) error {
 		name = fs.Arg(0)
 	}
 	if name == "" {
-		return errors.New("没有当前 context；先运行 `nexus-cli login`")
+		return errors.New(i18n.T("no current context; run `nexus-cli login` first"))
 	}
 	c, ok := cfg.Contexts[name]
 	if !ok {
-		return fmt.Errorf("context %q 不存在", name)
+		return fmt.Errorf("%s", i18n.T("context %q does not exist", name))
 	}
 	info := map[string]any{
 		"name": name, "url": c.URL, "user": c.User,
@@ -398,22 +416,22 @@ func contextShow(args []string) error {
 	return emit(out.JSON, info, func(w io.Writer) {
 		mark := ""
 		if cfg.Current == name {
-			mark = "（当前）"
+			mark = i18n.T(" (current)")
 		}
-		fmt.Fprintf(w, "context %s%s\n", name, mark)
-		fmt.Fprintf(w, "  地址: %s\n", orUnset(c.URL))
-		fmt.Fprintf(w, "  账号: %s\n", orUnset(c.User))
+		fmt.Fprintf(w, "%s\n", i18n.T("context %s%s", name, mark))
+		fmt.Fprintf(w, "  %s\n", i18n.T("address: %s", orUnset(c.URL)))
+		fmt.Fprintf(w, "  %s\n", i18n.T("account: %s", orUnset(c.User)))
 		if c.Password != "" {
-			fmt.Fprintln(w, "  密码: 已设置")
+			fmt.Fprintf(w, "  %s\n", i18n.T("password: set"))
 		} else {
-			fmt.Fprintln(w, "  密码: <未设置>")
+			fmt.Fprintf(w, "  %s\n", i18n.T("password: <unset>"))
 		}
 	})
 }
 
 func contextRemove(args []string) error {
 	if len(args) != 1 {
-		return errors.New("用法: nexus-cli context remove <名字>")
+		return errors.New(i18n.T("usage: nexus-cli context remove <name>"))
 	}
 	name := args[0]
 	cfg, err := config.Load()
@@ -422,16 +440,16 @@ func contextRemove(args []string) error {
 	}
 	wasCurrent := cfg.Current == name
 	if !cfg.Delete(name) {
-		return fmt.Errorf("context %q 不存在", name)
+		return fmt.Errorf("%s", i18n.T("context %q does not exist", name))
 	}
 	if err := config.Save(cfg); err != nil {
 		return err
 	}
-	fmt.Printf("已删除 context %q", name)
 	if wasCurrent {
-		fmt.Printf("（原为当前，current 现在是 %s）", orUnset(cfg.Current))
+		fmt.Println(i18n.T("removed context %q (it was current; current is now %s)", name, orUnset(cfg.Current)))
+	} else {
+		fmt.Println(i18n.T("removed context %q", name))
 	}
-	fmt.Println()
 	return nil
 }
 
@@ -441,16 +459,17 @@ func normalize(u string) string {
 
 func currentMark(isCurrent bool) string {
 	if isCurrent {
-		return "（当前）"
+		return i18n.T(" (current)")
 	}
 	return ""
 }
 
+// from renders where a value came from, using the translated source labels.
 func from(src string) string {
 	if src == "" {
 		return ""
 	}
-	return "（来自" + src + "）"
+	return i18n.T(" (from %s)", i18n.T(src))
 }
 
 func redact(s string) string {
@@ -466,7 +485,7 @@ func redact(s string) string {
 
 func orUnset(s string) string {
 	if s == "" {
-		return "<未设置>"
+		return i18n.T("<unset>")
 	}
 	return s
 }
