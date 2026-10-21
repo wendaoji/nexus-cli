@@ -94,17 +94,61 @@ out="$(run upload-dir --repo R --dir "$ud/dist" --exclude '*.txt' --dry-run 2>&1
 grep -q 'a.txt' <<<"$out" && bad "--exclude 未生效" || ok "--exclude 生效"
 rm -rf "$ud"
 
-# ── 6. 凭据 ────────────────────────────────────────────────────────────────
-head_ "6. 凭据"
-who="$(HOME="$FH" env -u NEXUS_USER -u NEXUS_PASSWORD "$BIN" whoami 2>&1)"
-grep -q '凭据文件' <<<"$who" && ok "whoami 显示凭据文件" || bad "whoami 输出异常"
-who2="$(HOME="$FH" NEXUS_USER=envuser NEXUS_PASSWORD=envpass "$BIN" whoami 2>&1)"
-grep -q '环境变量' <<<"$who2" && ok "环境变量优先于文件" || bad "凭据优先级不符预期"
+# ── 6. context 与凭据 ──────────────────────────────────────────────────────
+head_ "6. context 与凭据"
+cfgdir="$FH/.config/nexus-cli"
+mkdir -p "$cfgdir"
+cat > "$cfgdir/config.json" <<'JSON'
+{
+  "current": "prod",
+  "contexts": {
+    "prod": { "url": "http://prod.test:8081", "user": "produser", "password": "prodpass" },
+    "dev":  { "url": "http://dev.test:8081",  "user": "devuser",  "password": "devpass"  }
+  }
+}
+JSON
+chmod 600 "$cfgdir/config.json"
 
+out="$(run context list 2>&1)"
+grep -q 'prod' <<<"$out" && grep -q 'dev' <<<"$out" && ok "context list 列出全部" || bad "context list 异常: $out"
+grep -q '^\* prod' <<<"$out" && ok "context list 标记 current" || bad "current 标记缺失"
+
+out="$(run whoami 2>&1)"
+grep -q 'context: prod' <<<"$out" && ok "whoami 用 current" || bad "whoami 未用 current: $out"
+grep -q '账号: prod…' <<<"$out" && ok "凭据来自 context" || bad "凭据来源不符: $out"
+
+out="$(run --context dev whoami 2>&1)"
+grep -q 'context: dev' <<<"$out" && grep -q 'devu…' <<<"$out" && ok "--context 全局参数生效" \
+  || bad "--context 未生效: $out"
+
+# 核心：给定地址时按 URL 自动匹配 context，避免拿 A 的凭据打 B
+out="$(run --url http://dev.test:8081 whoami 2>&1)"
+grep -q '按地址自动匹配' <<<"$out" && grep -q 'devu…' <<<"$out" && ok "按地址自动匹配 context" \
+  || bad "自动匹配失败: $out"
+
+# 地址与 context 记录不一致时必须报警并失败
+run --context prod --url http://other.test:8081 whoami >/dev/null 2>&1 \
+  && bad "地址不一致时应当失败" || ok "地址与 context 不一致时报错"
+
+run context use dev >/dev/null 2>&1 && ok "context use" || bad "context use"
+run whoami 2>&1 | grep -q 'context: dev' && ok "切换后生效" || bad "切换未生效"
+run context remove dev >/dev/null 2>&1 && ok "context remove" || bad "context remove"
+
+run --context nope whoami >/dev/null 2>&1 \
+  && bad "未知 context 应当报错" || ok "未知 context 报错"
+# 指向本机未监听端口，避免这个用例去连真实 Nexus
+out="$(run --context nope --url http://127.0.0.1:1 login --user x --password y 2>&1 || true)"
+grep -q '不存在' <<<"$out" && bad "login 拒绝创建新 context" || ok "login 允许创建新 context"
+
+# login 的本地行为
 run login --help >/dev/null 2>&1 && ok "login --help" || bad "login --help"
-HOME="$FH" "$BIN" login >/dev/null 2>&1 && bad "缺 --user 应当报错" || ok "缺 --user 正确报错"
-out="$(HOME="$FH" env -u NEXUS_USER -u NEXUS_PASSWORD "$BIN" login --user x </dev/null 2>&1)"
+run login >/dev/null 2>&1 && bad "缺 --user 应当报错" || ok "缺 --user 正确报错"
+out="$(env -u NEXUS_USER -u NEXUS_PASSWORD "$BIN" login --user x </dev/null 2>&1 || true)"
 grep -q 'password-stdin' <<<"$out" && ok "非交互时提示 --password-stdin" || bad "非交互报错不明确"
+
+# 环境变量仍优先于 context
+out="$(NEXUS_USER=envuser NEXUS_PASSWORD=envpass run whoami 2>&1)"
+grep -q '来自环境变量' <<<"$out" && ok "环境变量优先于 context" || bad "环境变量优先级不符: $out"
 
 # ── 7. MCP 档位 ────────────────────────────────────────────────────────────
 head_ "7. MCP 档位"

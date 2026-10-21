@@ -48,5 +48,6 @@ var runMCPServer = func(readOnly, destructive bool) error {
 	return mcpserver.Serve(mcpserver.Options{
 		ReadOnly:           readOnly,
 		IncludeDestructive: destructive,
+		Target:             Current,
 	})
 }

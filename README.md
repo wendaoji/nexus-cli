@@ -41,45 +41,81 @@ cd nexus-cli && make build      # 产出 dist/nexus-cli
 ## 快速开始
 
 ```bash
-# 1. 写入凭据（写入前会先校验一次）
-nexus-cli login --user <账号>              # 交互式输入，不回显
-nexus-cli login --user <账号> --password-stdin   # 脚本/CI
+# 1. 写入 context（地址 + 凭据，写入前会先校验一次）
+nexus-cli login --user <账号>                     # 交互式输入，不回显
+nexus-cli login --user <账号> --password-stdin    # 脚本/CI
 
 # 2. 确认
 nexus-cli whoami --check
+nexus-cli context list
 
 # 3. 用
 nexus-cli status show -o json
 nexus-cli repo list -o json
 ```
 
-默认目标是编译期写入的地址（`config/default-origin.txt`），运行时可用
-`NEXUS_URL` 覆盖：
-
-```bash
-NEXUS_URL=http://other-host:8081 nexus-cli repo list
-```
+默认目标是编译期写入的地址（`config/default-origin.txt`）。接多台 Nexus 时用
+context，见下一节。
 
 ---
 
-## 凭据
+## context（多目标）与凭据
 
-| 来源 | 优先级 |
-|---|---|
-| 环境变量 `NEXUS_USER` / `NEXUS_PASSWORD` | 高 |
-| 凭据文件 `~/.config/nexus-cli/env`（`chmod 600`） | 低 |
+`~/.config/nexus-cli/config.json`（`chmod 600`）保存若干 context：
 
-文件只「填补」环境里没设置的字段，所以 CI/agent 用环境变量、日常用文件，互不打架。
+```jsonc
+{
+  "current": "prod",
+  "contexts": {
+    "prod": { "url": "http://172.16.41.26:8081", "user": "ci-readonly", "password": "…" },
+    "dev":  { "url": "http://dev-nexus:8081",    "user": "me",          "password": "…" }
+  }
+}
+```
 
 ```bash
-nexus-cli whoami            # 来源、账号（脱敏）、目标地址
-nexus-cli whoami --check    # 再打一次接口确认凭据可用
-nexus-cli whoami -o json    # 给脚本/agent
+nexus-cli login --url http://dev-nexus:8081 --user me --context dev   # 新建/更新
+nexus-cli context list                 # * 标记当前
+nexus-cli context use prod             # 切换
+nexus-cli context show [dev]
+nexus-cli context remove dev
+
+nexus-cli --context dev repo list      # 单次指定
+NEXUS_CONTEXT=dev nexus-cli repo list  # 环境变量指定
+```
+
+**解析优先级**（高 → 低）：
+
+| 项 | 顺序 |
+|---|---|
+| context 名 | `--context` > `NEXUS_CONTEXT` > config 的 `current` |
+| 地址 | `--url` > `NEXUS_URL` > 该 context 的 `url` > 编译期默认值 |
+| 凭据 | `NEXUS_USER` / `NEXUS_PASSWORD` > 该 context 的凭据 |
+
+还有一条便利规则：**显式给了地址且与某个 context 的 `url` 相同，就自动用那个
+context 的凭据**。所以：
+
+```bash
+NEXUS_URL=http://dev-nexus:8081 nexus-cli repo list   # 自动匹配到 dev 的凭据
+```
+
+这解决了一个真实的风险：以前凭据文件不记录主机，`NEXUS_URL=… login` 之后
+不带 `NEXUS_URL` 再执行命令，会拿着 A 的凭据打 B。现在 `whoami` 会检测
+「context 记录的地址」与「本次目标地址」不一致并报错：
+
+```bash
+$ nexus-cli --context prod --url http://other:8081 whoami
+⚠ context "prod" 记录的是 http://172.16.41.26:8081，本次目标是 http://other:8081
 ```
 
 `login` 用 `GET /v1/repositories` 校验，据此区分：
 `200` 有效 / `403` 已认证但无权限（凭据本身有效）/ `401` 凭据无效 / `429` 被限流。
 **校验通过才落盘**，避免存下错凭据后到处 401（还会触发 Nexus 的认证限流）。
+
+> **从旧版本升级**：如果你之前用过单主机的 `~/.config/nexus-cli/env`，
+> 首次运行会自动迁移成 context `default`（旧文件没有主机信息，地址取编译期默认值），
+> 原文件重命名为 `env.migrated` 保留备份。然后用
+> `nexus-cli login --context default --url <你的地址>` 补正地址。
 
 > **User Token 是 Nexus Pro 专属功能。** Community 版没有该接口（调用会 404），
 > 所以本工具不提供「用 admin 自动铸造 token」。若你在 Pro 版或 Web UI 里拿到了
@@ -215,7 +251,7 @@ nexus-cli (单静态二进制)
 │     └── spec/nexus-overlay.yaml          人工语义层
 └── 自有实现（本仓库）
       ├── upload / upload-dir   multipart（Restish 表达不了点号字段名）
-      ├── login / whoami        凭据文件
+      ├── login / whoami / context   多目标 + 凭据
       ├── task wait             异步任务轮询
       └── mcp                   MCP server（进程内，无宿主）
 ```
@@ -224,11 +260,16 @@ nexus-cli (单静态二进制)
 
 1. **为什么内嵌 Restish 而不是调用它**：`main()` 是我们的，可以在 `cli.Run()` 之前
    拦截自有命令（嵌入 API 没有 `AddCommand`）。用 `SetDefaultConfig` 把 base_url 和
-   spec 编进二进制，于是用户不需要任何外部配置文件。
+   spec 编进二进制，于是用户除了可选的 `~/.config/nexus-cli/config.json`（context）
+   之外不需要任何配置。
 2. **为什么 spec 落盘**：Restish 的 `spec_files` 只接受文件路径或 URL，而交付目标是
    单文件。落盘到内容哈希命名的缓存目录，升级后自动换目录。
 3. **为什么上传自己实现**：见上文。字段映射在 `internal/nexus/fields.go`，
    CLI 与 MCP 两条通道共用同一套。
+
+解析上下文只做一次（`config.Resolve`），结果既用于自有命令，也导出成
+`NEXUS_USER`/`NEXUS_PASSWORD` 给嵌入的 Restish。这样避免了「Restish 用的环境变量
+反过来污染下一次解析」的问题 —— 否则 `whoami` 会把自己刚写的环境变量误报成来源。
 
 ---
 
@@ -302,5 +343,6 @@ Restish 生成的命令在 HTTP 错误时会把响应体写到 stdout、退出�
 ## 安全
 
 - 使用**专用只读账号**，不要用 admin 账号。
-- 凭据文件权限 `600`；仓库内不含任何凭据（见 `.gitignore`）。
+- 配置文件（含凭据）权限 `600`；仓库内不含任何凭据（见 `.gitignore`）。
+- 地址与 context 记录不一致时 `whoami` 会报错，避免拿 A 的凭据打 B。
 - MCP 默认屏蔽破坏性操作；`script run` 需显式 `--allow-destructive`。

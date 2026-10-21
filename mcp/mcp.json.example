@@ -1,8 +1,9 @@
 {
   "_comment": [
     "把这段合并进 MCP 客户端配置（Claude Code ~/.claude.json、Cursor、Codex 等）。",
-    "nexus-cli 是单文件二进制，凭据来自 ~/.config/nexus-cli/env 或环境变量，",
-    "所以这里不需要再注入任何密钥。",
+    "nexus-cli 是单文件二进制，凭据来自 ~/.config/nexus-cli/config.json 里的",
+    "context 或环境变量，所以这里不需要再注入任何密钥。",
+    "MCP 使用当前的 context；也可在 args 里加 [\"mcp\", \"--context\", \"dev\"]。",
     "",
     "档位：默认 = 读 + 生产性写（上传、任务触发）；",
     "     加 --read-only 只读；加 --allow-destructive 才放开 delete/script run。"

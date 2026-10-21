@@ -2,7 +2,7 @@
 //
 // 架构：单一静态二进制，内嵌 Restish（源码依赖）+ 内嵌 OpenAPI spec。
 //   - 生成的命令（repo/component/search/... 共 409 个操作）由嵌入的 Restish 提供
-//   - Restish 表达不了的能力（multipart 上传、凭据管理、任务轮询、MCP）由本仓库实现
+//   - Restish 表达不了的能力（multipart 上传、context/凭据、任务轮询、MCP）由本仓库实现
 //
 // 这样用户只需要一个文件：不需要 restish 可执行文件、jq、curl、python 或 shell。
 package main
@@ -12,11 +12,12 @@ import (
 	"fmt"
 	"os"
 	"runtime/debug"
+	"strings"
 
 	restish "github.com/rest-sh/restish/v2"
 
 	"github.com/wendaoji/nexus-cli/internal/commands"
-	"github.com/wendaoji/nexus-cli/internal/creds"
+	"github.com/wendaoji/nexus-cli/internal/config"
 	"github.com/wendaoji/nexus-cli/internal/nexus"
 	"github.com/wendaoji/nexus-cli/internal/specs"
 )
@@ -54,16 +55,29 @@ func main() {
 }
 
 func run() error {
-	// 凭据先解析并导出到环境，供 Restish 解析 profile 里的 env:NEXUS_USER / env:NEXUS_PASSWORD。
-	c, err := creds.Load()
+	// 全局 --context / --url 先抽出来，这样对所有子命令都生效，
+	// 包括透传给 Restish 的命令。剩下的参数才交给后续逻辑。
+	args := extractGlobals(os.Args[1:])
+
+	// 解析一次上下文：供自有命令复用，并导出给嵌入的 Restish。
+	// login 允许 context 尚不存在（它的职责就是创建），其余命令严格校验。
+	resolveFn := config.Resolve
+	if len(args) > 0 && args[0] == "login" {
+		resolveFn = config.ResolveForLogin
+	}
+	r, err := resolveFn(commands.GlobalContext, commands.GlobalURL, nexus.DefaultOrigin)
 	if err != nil {
 		return err
 	}
-	c.Export()
+	// 只解析这一次：后续命令直接复用，避免 Restish 用的环境变量反过来污染解析。
+	commands.Current = r
+	// Restish 的 profile 用 env:NEXUS_USER / env:NEXUS_PASSWORD 取凭据，
+	// 这里把解析结果注入环境（只覆盖为空的值，不覆盖用户显式导出的）。
+	exportCreds(r)
 
 	// 自有命令必须在进入 Restish 之前拦截：嵌入 API 只提供
 	// SetCommandName/DefaultConfig/CommandSurface 等定制点，没有 AddCommand。
-	if handled, err := dispatch(os.Args[1:]); handled {
+	if handled, err := dispatch(args); handled {
 		return err
 	}
 
@@ -81,7 +95,7 @@ func run() error {
 	cli.SetVersion(resolveVersion())
 	cli.SetDefaultConfig(&restish.Config{APIs: map[string]*restish.APIConfig{
 		apiName: {
-			BaseURL:       nexus.Origin(),
+			BaseURL:       r.URL,
 			SpecFiles:     files,
 			CommandLayout: "tags",
 			RetryMaxWait:  "3s",
@@ -90,8 +104,8 @@ func run() error {
 					Auth: &restish.AuthConfig{
 						Type: "http-basic",
 						Params: map[string]string{
-							"username": "env:" + creds.EnvUser,
-							"password": "env:" + creds.EnvPass,
+							"username": "env:" + config.EnvUser,
+							"password": "env:" + config.EnvPass,
 						},
 					},
 				},
@@ -104,7 +118,49 @@ func run() error {
 		// 既避免与 Nexus 的 config 分组撞名，也保留排障入口。
 		SupportCommandNamespace: "restish",
 	})
-	return cli.Run(os.Args)
+	// 传抽出全局参数后的 argv（Restish 拿到的参数里不含 --context/--url）
+	return cli.Run(append([]string{os.Args[0]}, args...))
+}
+
+// extractGlobals 抽出全局 --context / --url，写入 commands 包的全局变量。
+// 支持 "--flag value" 与 "--flag=value" 两种写法。
+func extractGlobals(args []string) []string {
+	out := make([]string, 0, len(args))
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		switch {
+		case a == "--context":
+			if i+1 < len(args) {
+				commands.GlobalContext = args[i+1]
+				i++
+			}
+		case strings.HasPrefix(a, "--context="):
+			commands.GlobalContext = strings.TrimPrefix(a, "--context=")
+		case a == "--url":
+			if i+1 < len(args) {
+				commands.GlobalURL = args[i+1]
+				i++
+			}
+		case strings.HasPrefix(a, "--url="):
+			commands.GlobalURL = strings.TrimPrefix(a, "--url=")
+		default:
+			out = append(out, a)
+		}
+	}
+	return out
+}
+
+// exportCreds 把解析出的凭据导出到环境，供 Restish 的 env: 引用解析。
+func exportCreds(r *config.Resolved) {
+	if r == nil {
+		return
+	}
+	if r.User != "" && os.Getenv(config.EnvUser) == "" {
+		_ = os.Setenv(config.EnvUser, r.User)
+	}
+	if r.Pass != "" && os.Getenv(config.EnvPass) == "" {
+		_ = os.Setenv(config.EnvPass, r.Pass)
+	}
 }
 
 // dispatch 拦截自有命令。返回 handled=false 表示交给 Restish。
@@ -118,6 +174,8 @@ func dispatch(args []string) (bool, error) {
 		return true, commands.Login(rest)
 	case "whoami":
 		return true, commands.Whoami(rest)
+	case "context":
+		return true, commands.ContextCmd(rest)
 	case "upload":
 		return true, commands.Upload(rest)
 	case "upload-dir":

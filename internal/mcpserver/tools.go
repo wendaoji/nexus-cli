@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/wendaoji/nexus-cli/internal/creds"
+	"github.com/wendaoji/nexus-cli/internal/config"
 	"github.com/wendaoji/nexus-cli/internal/nexus"
 )
 
@@ -121,7 +121,7 @@ func dedupeStrings(in []string) []string {
 	return out
 }
 
-func handleCall(byName map[string]*Operation, synByName map[string]syntheticTool, raw json.RawMessage) map[string]any {
+func handleCall(byName map[string]*Operation, synByName map[string]syntheticTool, target *config.Resolved, raw json.RawMessage) map[string]any {
 	var p struct {
 		Name      string         `json:"name"`
 		Arguments map[string]any `json:"arguments"`
@@ -138,14 +138,18 @@ func handleCall(byName map[string]*Operation, synByName map[string]syntheticTool
 		p.Arguments = map[string]any{}
 	}
 
-	cr, err := creds.Load()
-	if err != nil {
-		return toolError("读取凭据失败: " + err.Error())
+	r := target
+	if r == nil {
+		var err error
+		r, err = config.Resolve("", "", nexus.DefaultOrigin)
+		if err != nil {
+			return toolError("解析 context 失败: " + err.Error())
+		}
 	}
-	if !cr.Complete() {
-		return toolError("缺少凭据：先运行 `nexus-cli login --user <账号>` 或设置 NEXUS_USER / NEXUS_PASSWORD")
+	if !r.Complete() {
+		return toolError(config.ErrNoCredentials.Error())
 	}
-	c, err := nexus.New(cr)
+	c, err := nexus.New(r.URL, r.User, r.Pass)
 	if err != nil {
 		return toolError(err.Error())
 	}

@@ -59,10 +59,15 @@ nexus-cli upload-dir --repo <maven-repo> --format maven --dir ./m2
 - `--include` / `--exclude` 按 basename 匹配；`--jobs N` 控制并发
 - 失败不中断，最后有失败清单 —— **必读并报告**
 
-## 凭据
+## context 与凭据
 
-环境变量 `NEXUS_USER` / `NEXUS_PASSWORD` 优先，其次 `~/.config/nexus-cli/env`。
-用 `nexus-cli whoami` 查来源，`--check` 顺带验证连通性。
+目标地址 + 凭据按「context」保存（`~/.config/nexus-cli/config.json`）。
+优先级：`--context` > `NEXUS_CONTEXT` > config 的 `current`；地址：
+`--url` > `NEXUS_URL` > context.url > 编译默认值；凭据：
+`NEXUS_USER`/`NEXUS_PASSWORD` > context 的凭据。
+显式给了地址且与某 context 的 url 相同时，会自动用那个 context 的凭据。
+
+用 `nexus-cli whoami` 查当前生效的 context / 地址 / 凭据来源，`--check` 顺带验证连通性。
 **不要读取或打印凭据文件的内容。**
 
 ## 异步任务

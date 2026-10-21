@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/wendaoji/nexus-cli/internal/creds"
+	"github.com/wendaoji/nexus-cli/internal/config"
 	"github.com/wendaoji/nexus-cli/internal/nexus"
 )
 
@@ -111,11 +111,11 @@ func Upload(args []string) error {
 		return err
 	}
 
-	cr, err := creds.Load()
+	r, err := resolveTarget()
 	if err != nil {
 		return err
 	}
-	c, err := nexus.New(cr)
+	c, err := nexus.New(r.URL, r.User, r.Pass)
 	if err != nil {
 		return err
 	}
@@ -142,9 +142,8 @@ func Upload(args []string) error {
 	}
 
 	// 只有真正要发送时才要求凭据齐全：dry-run 不应依赖凭据。
-	if !cr.Complete() {
-		return fmt.Errorf("缺少凭据：请运行 `nexus-cli login --user <账号>` 或设置 %s / %s",
-			creds.EnvUser, creds.EnvPass)
+	if !r.Complete() {
+		return config.ErrNoCredentials
 	}
 
 	status, body, err := c.PostComponent(context.Background(), o.Repo, fields)
@@ -194,19 +193,6 @@ func buildFields(o uploadOptions) ([]nexus.FormField, error) {
 		f = append(f, nexus.FormField{Name: k, Value: v})
 	}
 	return f, nil
-}
-
-// newAuthedClient 用生效凭据构造客户端，缺失时给出可操作的提示。
-func newAuthedClient() (*nexus.Client, error) {
-	cr, err := creds.Load()
-	if err != nil {
-		return nil, err
-	}
-	if !cr.Complete() {
-		return nil, fmt.Errorf("缺少凭据：请运行 `nexus-cli login --user <账号>` 或设置 %s / %s",
-			creds.EnvUser, creds.EnvPass)
-	}
-	return nexus.New(cr)
 }
 
 // stringList 是 flag.Value 的切片实现，用于可重复的 --field。

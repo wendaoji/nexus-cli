@@ -8,6 +8,8 @@ import (
 	"os"
 	"sort"
 	"strings"
+
+	"github.com/wendaoji/nexus-cli/internal/config"
 )
 
 // Options 控制暴露哪些工具。
@@ -16,6 +18,8 @@ type Options struct {
 	ReadOnly bool
 	// IncludeDestructive 额外暴露破坏性操作（delete、security 变更、script run 等）。
 	IncludeDestructive bool
+	// Target 是调用方已解析好的上下文；为空时退化为按环境重新解析。
+	Target *config.Resolved
 }
 
 type rpcRequest struct {
@@ -127,7 +131,7 @@ func Serve(opt Options) error {
 			}
 		case "tools/call":
 			if !isNotification {
-				result := handleCall(byName, synByName, req.Params)
+				result := handleCall(byName, synByName, opt.Target, req.Params)
 				writeResult(out, req.ID, result)
 			}
 		default:

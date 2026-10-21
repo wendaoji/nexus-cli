@@ -9,17 +9,15 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
 	nexuscli "github.com/wendaoji/nexus-cli"
-	"github.com/wendaoji/nexus-cli/internal/creds"
 	"github.com/wendaoji/nexus-cli/internal/specs"
 )
 
 // DefaultOrigin 是编译期默认目标，来自 config/default-origin.txt（随二进制内嵌）。
-// 运行时 NEXUS_URL 优先级更高。
+// 运行时由 config.Resolve 按优先级覆盖。
 var DefaultOrigin = strings.TrimSpace(nexuscli.DefaultOriginText)
 
 // Client 是一个带 Basic 认证的 Nexus 客户端。
@@ -31,27 +29,19 @@ type Client struct {
 	HTTP    *http.Client
 }
 
-// New 用生效凭据构造客户端。
-func New(c *creds.Credentials) (*Client, error) {
+// New 用解析好的目标地址与凭据构造客户端。
+func New(origin, user, pass string) (*Client, error) {
 	root, err := specs.APIRoot()
 	if err != nil {
 		return nil, err
 	}
 	return &Client{
-		Origin:  Origin(),
+		Origin:  strings.TrimRight(origin, "/"),
 		APIRoot: strings.TrimRight(root, "/"),
-		User:    c.User,
-		Pass:    c.Pass,
+		User:    user,
+		Pass:    pass,
 		HTTP:    &http.Client{Timeout: 300 * time.Second},
 	}, nil
-}
-
-// Origin 返回目标地址：NEXUS_URL 优先，否则编译期默认值。
-func Origin() string {
-	if v := strings.TrimSpace(os.Getenv("NEXUS_URL")); v != "" {
-		return strings.TrimRight(v, "/")
-	}
-	return strings.TrimRight(DefaultOrigin, "/")
 }
 
 // URL 拼接完整请求地址。path 需以 "/" 开头，例如 "/v1/repositories"。
