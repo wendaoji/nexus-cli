@@ -16,7 +16,7 @@ import (
 	"sort"
 	"strings"
 
-	nexuscli "gogs.wendaoji.com/wdj/nexus-cli"
+	nexuscli "github.com/wendaoji/nexus-cli"
 )
 
 const embedDir = "spec"

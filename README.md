@@ -20,18 +20,17 @@ $ nexus-cli mcp          # 作为 MCP server 供 AI agent 使用
 ## 安装
 
 ```bash
-# 方式一（推荐）：从 release 下载对应平台的单文件，放到 PATH 即可
+# 方式一：go install（模块路径即 GitHub 仓库路径）
+go install github.com/wendaoji/nexus-cli/cmd/nexus-cli@latest
+
+# 方式二：从 release 下载对应平台的单文件，放到 PATH 即可
 #   https://github.com/wendaoji/nexus-cli/releases
 #   macOS/Linux: tar xzf nexus-cli_<ver>_<os>_<arch>.tar.gz
 
-# 方式二：从源码构建
+# 方式三：从源码构建
 git clone git@github.com:wendaoji/nexus-cli.git
 cd nexus-cli && make build      # 产出 dist/nexus-cli
 ```
-
-> 暂不支持 `go install <module>@latest`：模块路径是 `gogs.wendaoji.com/wdj/nexus-cli`，
-> 与 GitHub 仓库路径不一致，Go 会去 gogs 解析。需要的话把 `go.mod` 的 module 改成
-> `github.com/wendaoji/nexus-cli` 并同步替换 import 路径。
 
 首次运行会自动把内嵌 spec 落到缓存目录（`~/Library/Caches/nexus-cli` 或
 `$XDG_CACHE_HOME/nexus-cli`），以内容哈希命名，升级后自动换目录。
@@ -239,14 +238,14 @@ nexus-cli (单静态二进制)
 make build        # dist/nexus-cli（-trimpath + 版本注入）
 make test         # go test ./...
 make vet
-make verify       # 构建 + 49 项冒烟验证
+make verify       # 构建 + 44 项冒烟验证
 ```
 
 推 `v*` tag 时，`.github/workflows/release.yml` 会用 goreleaser 产出
 macOS/Linux/Windows × amd64/arm64 的多平台产物。
 
-> 仓库当前远端是 `gogs.wendaoji.com`；GitHub Actions 需要在 GitHub 上有一份镜像
-> （或把这两个 workflow 挪到 gogs 的 CI）。
+> 当前有两个远端：`github`（`github.com:wendaoji/nexus-cli`，Actions 与 release 在这里跑）
+> 和 `origin`（gogs 镜像）。推代码/标签时两边都推，保持一致。
 
 ---
 

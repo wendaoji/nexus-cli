@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gogs.wendaoji.com/wdj/nexus-cli/internal/creds"
-	"gogs.wendaoji.com/wdj/nexus-cli/internal/nexus"
+	"github.com/wendaoji/nexus-cli/internal/creds"
+	"github.com/wendaoji/nexus-cli/internal/nexus"
 )
 
 const uploadUsage = `用法: nexus-cli upload --repo <仓库> --format <格式> --file <文件> [选项]

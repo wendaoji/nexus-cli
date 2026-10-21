@@ -1,4 +1,4 @@
-module gogs.wendaoji.com/wdj/nexus-cli
+module github.com/wendaoji/nexus-cli
 
 go 1.25.3
 

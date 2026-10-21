@@ -14,8 +14,8 @@ import (
 	v3 "github.com/pb33f/libopenapi/datamodel/high/v3"
 	"gopkg.in/yaml.v3"
 
-	nexuscli "gogs.wendaoji.com/wdj/nexus-cli"
-	"gogs.wendaoji.com/wdj/nexus-cli/internal/specs"
+	nexuscli "github.com/wendaoji/nexus-cli"
+	"github.com/wendaoji/nexus-cli/internal/specs"
 )
 
 // Operation 是一条可作为 MCP 工具暴露的 API 操作。

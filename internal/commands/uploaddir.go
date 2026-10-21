@@ -12,7 +12,7 @@ import (
 	"strings"
 	"sync"
 
-	"gogs.wendaoji.com/wdj/nexus-cli/internal/nexus"
+	"github.com/wendaoji/nexus-cli/internal/nexus"
 )
 
 const uploadDirUsage = `用法: nexus-cli upload-dir --repo <仓库> --dir <目录> [选项]

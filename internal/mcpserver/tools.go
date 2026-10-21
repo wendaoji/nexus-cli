@@ -12,8 +12,8 @@ import (
 	"strconv"
 	"strings"
 
-	"gogs.wendaoji.com/wdj/nexus-cli/internal/creds"
-	"gogs.wendaoji.com/wdj/nexus-cli/internal/nexus"
+	"github.com/wendaoji/nexus-cli/internal/creds"
+	"github.com/wendaoji/nexus-cli/internal/nexus"
 )
 
 type toolDef struct {

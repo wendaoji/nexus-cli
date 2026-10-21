@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	nexuscli "gogs.wendaoji.com/wdj/nexus-cli"
-	"gogs.wendaoji.com/wdj/nexus-cli/internal/creds"
-	"gogs.wendaoji.com/wdj/nexus-cli/internal/specs"
+	nexuscli "github.com/wendaoji/nexus-cli"
+	"github.com/wendaoji/nexus-cli/internal/creds"
+	"github.com/wendaoji/nexus-cli/internal/specs"
 )
 
 // DefaultOrigin 是编译期默认目标，来自 config/default-origin.txt（随二进制内嵌）。

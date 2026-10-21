@@ -11,8 +11,8 @@ import (
 
 	"golang.org/x/term"
 
-	"gogs.wendaoji.com/wdj/nexus-cli/internal/creds"
-	"gogs.wendaoji.com/wdj/nexus-cli/internal/nexus"
+	"github.com/wendaoji/nexus-cli/internal/creds"
+	"github.com/wendaoji/nexus-cli/internal/nexus"
 )
 
 const loginUsage = `用法: nexus-cli login --user <账号> [--password <密码> | --password-stdin]

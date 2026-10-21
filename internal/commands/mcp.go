@@ -7,7 +7,7 @@ import (
 	"io"
 	"os"
 
-	"gogs.wendaoji.com/wdj/nexus-cli/internal/mcpserver"
+	"github.com/wendaoji/nexus-cli/internal/mcpserver"
 )
 
 const mcpUsage = `用法: nexus-cli mcp [--read-only | --allow-destructive] [-o 无]

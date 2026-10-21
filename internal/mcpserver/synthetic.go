@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"gogs.wendaoji.com/wdj/nexus-cli/internal/nexus"
+	"github.com/wendaoji/nexus-cli/internal/nexus"
 )
 
 // syntheticTool 是那些「不是简单 GET/POST JSON」的操作：它们需要 multipart

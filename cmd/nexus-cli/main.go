@@ -14,10 +14,10 @@ import (
 
 	restish "github.com/rest-sh/restish/v2"
 
-	"gogs.wendaoji.com/wdj/nexus-cli/internal/commands"
-	"gogs.wendaoji.com/wdj/nexus-cli/internal/creds"
-	"gogs.wendaoji.com/wdj/nexus-cli/internal/nexus"
-	"gogs.wendaoji.com/wdj/nexus-cli/internal/specs"
+	"github.com/wendaoji/nexus-cli/internal/commands"
+	"github.com/wendaoji/nexus-cli/internal/creds"
+	"github.com/wendaoji/nexus-cli/internal/nexus"
+	"github.com/wendaoji/nexus-cli/internal/specs"
 )
 
 // version 由 -ldflags "-X main.version=..." 注入。
