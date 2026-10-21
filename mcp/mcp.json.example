@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "把这段合并进 MCP 客户端配置（Claude Code ~/.claude.json、Cursor、Codex 等）。",
+    "command 用 bin/nexus-cli 的绝对路径而不是裸 restish：",
+    "  1) nexus-cli mcp 会先加载 ~/.config/nexus-cli/env，凭据不用写进客户端配置；",
+    "  2) 若你已在下面的 env 里显式注入凭据，也可以直接写 restish + ['mcp','serve','nexus-cli']。",
+    "默认只读——写操作被隐藏；确需写操作再加 '--allow-write-tools'。"
+  ],
+  "mcpServers": {
+    "nexus-cli": {
+      "command": "/Users/wendaoji/workspace/wdj/cloudiip/nexus-cli/bin/nexus-cli",
+      "args": ["mcp"]
+    }
+  }
+}

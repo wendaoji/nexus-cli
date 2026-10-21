@@ -1,0 +1,385 @@
+# Nexus OpenAPI overlay —— 人工语义层
+#
+# Restish 按 config/restish.api.json 里 spec_files 的顺序 deep-merge：
+#   1. spec/nexus-<version>.json       vendor 快照（原样，可重新拉取）
+#   2. spec/nexus-tags.generated.yaml  机械层（scripts/gen-tags.sh 生成，勿手改）
+#   3. spec/nexus-overlay.yaml         ← 本文件，人工维护
+# 对象递归合并、标量覆盖、数组覆盖，所以这里只写「要改的部分」。
+#
+# 本文件负责四件事：
+#   A. 注入认证方案（Nexus spec 完全没有 securitySchemes，Restish 需要它才会发凭据）
+#   B. 把 operationId 命名成 nexus <group> <verb> 形态（x-cli-name）
+#   C. 隐藏 Community 版不可用的 Pro / 内部接口（x-cli-ignore）
+#   D. 对 MCP 屏蔽额外的破坏性操作（x-mcp-ignore；DELETE 已由生成器统一处理）
+#
+# 参考: https://rest.sh/docs/reference/openapi-cli-integration/
+
+openapi: 3.0.1
+info:
+  title: Nexus Repository Manager REST API
+  version: 3.97.0-13
+
+# ── A. 认证 ────────────────────────────────────────────────────────────────
+# Nexus 用 HTTP Basic；凭据由 config/restish.api.json 里的
+# profiles.<name>.auth 提供（type: http-basic，值走 env: 引用，不入库）。
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+security:
+  - basicAuth: []
+
+paths:
+
+  # ── B/D. 仓库 ──────────────────────────────────────────────────────────
+  /v1/repositories:
+    get:
+      x-cli-name: list
+      x-cli-description: List all repositories
+  /v1/repositories/{repositoryName}:
+    get:
+      x-cli-name: get
+      x-cli-description: Get repository configuration
+    delete:
+      x-cli-name: delete
+      x-cli-description: Delete a repository (irreversible)
+    # 注意：这里没有 PUT。Nexus 没有「通用仓库更新」接口，更新是逐格式的
+    # （PUT /v1/repositories/<format>/<kind>/{repositoryName}，见下方 repo 分组长尾）。
+    # deep-merge 会「新增」不存在的 method，所以不要在 overlay 里凭空写 method。
+  /v1/repositories/{repositoryName}/invalidate-cache:
+    post:
+      x-cli-name: invalidate-cache
+      x-mcp-ignore: true
+  /v1/repositories/{repositoryName}/rebuild-index:
+    post:
+      x-cli-name: rebuild-index
+  /v1/repositories/{repositoryName}/browse:
+    get:
+      x-cli-name: browse
+      x-cli-description: Browse the content of a repository
+  /v1/repositorySettings:
+    get:
+      x-cli-name: settings
+  /v1/repository-dashboard:
+    get:
+      x-cli-name: dashboard
+  /v1/repository-dashboard/formats:
+    get:
+      x-cli-name: dashboard-formats
+
+  # ── B/D. 构件 ──────────────────────────────────────────────────────────
+  /v1/components:
+    get:
+      x-cli-name: list
+      x-cli-description: List components in a repository
+    post:
+      # 注意：不要用这条命令上传！Restish 会把 multipart 字段名 maven2.asset1
+      # 改写成 maven2[asset1] 并丢弃二进制部分。请用 `nexus upload`（curl + api auth get）。
+      x-cli-name: upload-unsupported
+      x-cli-description: '[不要用] 请改用 `nexus upload`；Restish shorthand 会破坏 Nexus 的点号字段名'
+      x-mcp-ignore: true
+  /v1/components/{id}:
+    get:
+      x-cli-name: get
+      x-cli-description: Get a component (needs ?repository=)
+  /v1/assets:
+    get:
+      x-cli-name: list
+  /v1/assets/{id}:
+    get:
+      x-cli-name: get
+
+  # ── B. 搜索 ────────────────────────────────────────────────────────────
+  /v1/search:
+    get:
+      x-cli-name: query
+      x-cli-description: Search components by query (maven.groupId, name, version, ...)
+  /v1/search/assets:
+    get:
+      x-cli-name: assets
+  /v1/search/assets/download:
+    get:
+      x-cli-name: download
+      x-cli-description: Resolve a single asset and get its download URL
+  /v1/search/repositories:
+    get:
+      x-cli-name: repositories
+  /v1/search/versions:
+    get:
+      x-cli-name: versions
+  /v1/search/suggest:
+    get:
+      x-cli-name: suggest
+
+  # ── B. Blob store ──────────────────────────────────────────────────────
+  /v1/blobstores:
+    get:
+      x-cli-name: list
+  /v1/blobstores/file:
+    post:
+      x-cli-name: create-file
+  /v1/blobstores/file/{name}:
+    get:
+      x-cli-name: get-file
+    put:
+      x-cli-name: update-file
+  /v1/blobstores/s3:
+    post:
+      x-cli-name: create-s3
+  /v1/blobstores/s3/{name}:
+    get:
+      x-cli-name: get-s3
+    put:
+      x-cli-name: update-s3
+  /v1/blobstores/google:
+    post:
+      x-cli-name: create-google
+  /v1/blobstores/google/{name}:
+    get:
+      x-cli-name: get-google
+    put:
+      x-cli-name: update-google
+  /v1/blobstores/azure:
+    post:
+      x-cli-name: create-azure
+  /v1/blobstores/azure/{name}:
+    get:
+      x-cli-name: get-azure
+    put:
+      x-cli-name: update-azure
+  /v1/blobstores/group:
+    post:
+      x-cli-name: create-group
+  /v1/blobstores/group/{name}:
+    get:
+      x-cli-name: get-group
+    put:
+      x-cli-name: update-group
+  /v1/blobstores/group/convert/{name}/{newNameForOriginal}:
+    post:
+      x-cli-name: convert-group
+      x-mcp-ignore: true
+  /v1/blobstores/{name}/quota-status:
+    get:
+      x-cli-name: quota
+
+  # ── B/D. 任务（异步）────────────────────────────────────────────────────
+  /v1/tasks:
+    get:
+      x-cli-name: list
+    post:
+      x-cli-name: create
+  /v1/tasks/{id}:
+    get:
+      x-cli-name: get
+  /v1/tasks/{id}/run:
+    post:
+      x-cli-name: run
+      x-mcp-ignore: true
+  /v1/tasks/{id}/stop:
+    post:
+      x-cli-name: stop
+      x-mcp-ignore: true
+  /v1/tasks/templates:
+    get:
+      x-cli-name: templates
+  /v1/tasks/templates/{typeId}:
+    get:
+      x-cli-name: template
+
+  # ── B/D. Groovy 脚本（REST 覆盖不到的能力兜底）──────────────────────────
+  /v1/script:
+    get:
+      x-cli-name: list
+    post:
+      x-cli-name: create
+  /v1/script/{name}:
+    get:
+      x-cli-name: get
+    put:
+      x-cli-name: update
+    delete:
+      x-cli-name: delete
+  /v1/script/{name}/run:
+    post:
+      x-cli-name: run
+      x-cli-description: Run a Groovy script (arbitrary server-side code)
+      x-mcp-ignore: true
+
+  # ── B/D. 安全 ──────────────────────────────────────────────────────────
+  /v1/security/users:
+    get:
+      x-cli-name: user-list
+    post:
+      x-cli-name: user-create
+  /v1/security/users/{userId}:
+    put:
+      x-cli-name: user-update
+    delete:
+      x-cli-name: user-delete
+  /v1/security/users/{userId}/change-password:
+    put:
+      x-cli-name: user-change-password
+      x-mcp-ignore: true
+  /v1/security/roles:
+    get:
+      x-cli-name: role-list
+    post:
+      x-cli-name: role-create
+  /v1/security/roles/{id}:
+    get:
+      x-cli-name: role-get
+    put:
+      x-cli-name: role-update
+    delete:
+      x-cli-name: role-delete
+  /v1/security/roles/assignable:
+    get:
+      x-cli-name: role-assignable
+  /v1/security/privileges:
+    get:
+      x-cli-name: privilege-list
+  /v1/security/privileges/{privilegeName}:
+    get:
+      x-cli-name: privilege-get
+    delete:
+      x-cli-name: privilege-delete
+  /v1/security/realms/active:
+    get:
+      x-cli-name: realm-list-active
+    put:
+      x-cli-name: realm-set-active
+      x-mcp-ignore: true
+  /v1/security/realms/available:
+    get:
+      x-cli-name: realm-list-available
+  /v1/security/anonymous:
+    get:
+      x-cli-name: anonymous-get
+    put:
+      x-cli-name: anonymous-set
+      x-mcp-ignore: true
+
+  # ── B. 状态 ────────────────────────────────────────────────────────────
+  /v1/status:
+    get:
+      x-cli-name: show
+      x-cli-description: Nexus server version and status
+  /v1/status/writable:
+    get:
+      x-cli-name: writable
+  /v1/status/check:
+    get:
+      x-cli-name: check
+
+  # ── B. 其他常用 ────────────────────────────────────────────────────────
+  /v1/capabilities:
+    get:
+      x-cli-name: list
+    post:
+      x-cli-name: create
+  /v1/capabilities/types:
+    get:
+      x-cli-name: types
+  /v1/capabilities/{capabilityId}:
+    put:
+      x-cli-name: update
+    delete:
+      x-cli-name: delete
+  /v1/routing-rules:
+    get:
+      x-cli-name: list
+    post:
+      x-cli-name: create
+  /v1/routing-rules/{name}:
+    get:
+      x-cli-name: get
+    put:
+      x-cli-name: update
+    delete:
+      x-cli-name: delete
+  /v1/formats/upload-specs:
+    get:
+      x-cli-name: upload-specs
+  /v1/formats/{format}/upload-specs:
+    get:
+      x-cli-name: upload-spec
+  /v1/email:
+    get:
+      x-cli-name: get
+    put:
+      x-cli-name: set
+  /v1/email/verify:
+    post:
+      x-cli-name: verify
+      x-mcp-ignore: true
+  /v1/configuration:
+    get:
+      x-cli-name: show
+    put:
+      x-cli-name: set
+      x-mcp-ignore: true
+
+  # ── C. 隐藏：Community 版不可用（Pro）或对 CLI 无意义的接口 ─────────────
+  # LDAP（Pro）
+  /v1/security/ldap: {x-cli-ignore: true}
+  /v1/security/ldap/{name}: {x-cli-ignore: true}
+  /v1/security/ldap/cache: {x-cli-ignore: true}
+  /v1/security/ldap/change-order: {x-cli-ignore: true}
+  /v1/security/ldap/templates: {x-cli-ignore: true}
+  /v1/security/ldap/verify-connection: {x-cli-ignore: true}
+  /v1/security/ldap/verify-login: {x-cli-ignore: true}
+  /v1/security/ldap/verify-user-mapping: {x-cli-ignore: true}
+  # 证书 / SSRF / user-sources（Pro）
+  /v1/security/ssl: {x-cli-ignore: true}
+  /v1/security/ssl/truststore: {x-cli-ignore: true}
+  /v1/security/ssl/truststore/{id}: {x-cli-ignore: true}
+  /v1/security/ssrf-protection: {x-cli-ignore: true}
+  /v1/security/user-sources: {x-cli-ignore: true}
+  # Content selectors（Pro）
+  /v1/security/content-selectors: {x-cli-ignore: true}
+  /v1/security/content-selectors/{name}: {x-cli-ignore: true}
+  /v1/security/privileges/repository-content-selector: {x-cli-ignore: true}
+  /v1/security/privileges/repository-content-selector/{privilegeName}: {x-cli-ignore: true}
+  # Licensing（Pro）
+  /v1/system/license: {x-cli-ignore: true}
+  # Firewall / IQ（Pro）
+  /v1/iq: {x-cli-ignore: true}
+  /v1/iq/disable: {x-cli-ignore: true}
+  /v1/iq/enable: {x-cli-ignore: true}
+  /v1/iq/capabilities: {x-cli-ignore: true}
+  /v1/iq/capabilities/test: {x-cli-ignore: true}
+  /v1/iq/test-new-connection: {x-cli-ignore: true}
+  /v1/iq/verify-connection: {x-cli-ignore: true}
+  # Malicious risk / 评估（Pro）
+  /v1/malicious-risk/enabledRegistries: {x-cli-ignore: true}
+  /v1/malicious-risk/risk-on-disk: {x-cli-ignore: true}
+  /v1/evaluation/settings: {x-cli-ignore: true}
+  /v1/evaluation/settings-with-repos: {x-cli-ignore: true}
+  /v1/evaluation/repositories: {x-cli-ignore: true}
+  /v1/hosted-repository-evaluation/jobs/count: {x-cli-ignore: true}
+  /v1/hosted-repository-evaluation/jobs/queued: {x-cli-ignore: true}
+  /v1/hosted-repository-evaluation/jobs/scheduler/status: {x-cli-ignore: true}
+  /v1/hosted-repository-evaluation/jobs/scheduler/start: {x-cli-ignore: true}
+  /v1/hosted-repository-evaluation/jobs/scheduler/stop: {x-cli-ignore: true}
+  /v1/hosted-repository-evaluation/jobs/scheduler/update-schedule: {x-cli-ignore: true}
+  /v1/repositories/{repositoryName}/evaluation-settings: {x-cli-ignore: true}
+  # 运维/迁移类，平时不用
+  /v1/recovery-mode: {x-cli-ignore: true}
+  /v1/support/supportzip: {x-cli-ignore: true}
+  /v1/support/supportzippath: {x-cli-ignore: true}
+  /v1/secrets/encryption/re-encrypt: {x-cli-ignore: true}
+  /v1/apikeys/encryption/re-encrypt: {x-cli-ignore: true}
+  /v1/configuration/cipher: {x-cli-ignore: true}
+  /v1/configuration/transfer-complete: {x-cli-ignore: true}
+  /v1/configuration/assets/{repositoryName}/import: {x-cli-ignore: true}
+  # 遥测 / EULA / 用量统计
+  /v1/system/eula: {x-cli-ignore: true}
+  /v1/system/mandatory-telemetry-acknowledgement: {x-cli-ignore: true}
+  /v1/monthly-metrics: {x-cli-ignore: true}
+  /v1/usage-history: {x-cli-ignore: true}
+  /v1/http: {x-cli-ignore: true}
+  # 内部 UI 专用接口（非公开 API）
+  /internal/ui/api/permissions: {x-cli-ignore: true}
+  /internal/ui/security/access-check: {x-cli-ignore: true}

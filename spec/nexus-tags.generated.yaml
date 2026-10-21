@@ -1,0 +1,2471 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Nexus Repository Manager REST API",
+    "version": "3.97.0-13"
+  },
+  "paths": {
+    "/v1/assets/{id}": {
+      "get": {
+        "tags": [
+          "asset"
+        ]
+      },
+      "delete": {
+        "tags": [
+          "asset"
+        ],
+        "x-mcp-ignore": true
+      }
+    },
+    "/v1/assets": {
+      "get": {
+        "tags": [
+          "asset"
+        ]
+      }
+    },
+    "/v1/components/{id}": {
+      "get": {
+        "tags": [
+          "component"
+        ]
+      },
+      "delete": {
+        "tags": [
+          "component"
+        ],
+        "x-mcp-ignore": true
+      }
+    },
+    "/v1/components": {
+      "get": {
+        "tags": [
+          "component"
+        ]
+      },
+      "post": {
+        "tags": [
+          "component"
+        ]
+      }
+    },
+    "/v1/repositories/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "delete": {
+        "tags": [
+          "repo"
+        ],
+        "x-mcp-ignore": true
+      }
+    },
+    "/v1/repositories/{repositoryName}/invalidate-cache": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/{repositoryName}/rebuild-index": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositorySettings": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/formats/upload-specs": {
+      "get": {
+        "tags": [
+          "format"
+        ]
+      }
+    },
+    "/v1/formats/{format}/upload-specs": {
+      "get": {
+        "tags": [
+          "format"
+        ]
+      }
+    },
+    "/v1/security/content-selectors": {
+      "get": {
+        "tags": [
+          "security"
+        ]
+      },
+      "post": {
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/v1/security/content-selectors/{name}": {
+      "get": {
+        "tags": [
+          "security"
+        ]
+      },
+      "put": {
+        "tags": [
+          "security"
+        ]
+      },
+      "delete": {
+        "tags": [
+          "security"
+        ],
+        "x-mcp-ignore": true
+      }
+    },
+    "/v1/repositories": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/routing-rules": {
+      "get": {
+        "tags": [
+          "routing"
+        ]
+      },
+      "post": {
+        "tags": [
+          "routing"
+        ]
+      }
+    },
+    "/v1/routing-rules/{name}": {
+      "get": {
+        "tags": [
+          "routing"
+        ]
+      },
+      "put": {
+        "tags": [
+          "routing"
+        ]
+      },
+      "delete": {
+        "tags": [
+          "routing"
+        ],
+        "x-mcp-ignore": true
+      }
+    },
+    "/v1/search": {
+      "get": {
+        "tags": [
+          "search"
+        ]
+      }
+    },
+    "/v1/search/assets/download": {
+      "get": {
+        "tags": [
+          "search"
+        ]
+      }
+    },
+    "/v1/search/assets": {
+      "get": {
+        "tags": [
+          "search"
+        ]
+      }
+    },
+    "/v1/search/repositories": {
+      "get": {
+        "tags": [
+          "search"
+        ]
+      }
+    },
+    "/v1/search/versions": {
+      "get": {
+        "tags": [
+          "search"
+        ]
+      }
+    },
+    "/v1/search/suggest": {
+      "get": {
+        "tags": [
+          "search"
+        ]
+      }
+    },
+    "/v1/security/privileges/repository-admin": {
+      "post": {
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/v1/security/privileges/repository-content-selector": {
+      "post": {
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/v1/security/privileges/repository-view": {
+      "post": {
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/v1/security/privileges/repository-admin/{privilegeName}": {
+      "put": {
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/v1/security/privileges/repository-content-selector/{privilegeName}": {
+      "put": {
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/v1/security/privileges/repository-view/{privilegeName}": {
+      "put": {
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/v1/tasks/{id}": {
+      "get": {
+        "tags": [
+          "task"
+        ]
+      },
+      "delete": {
+        "tags": [
+          "task"
+        ],
+        "x-mcp-ignore": true
+      }
+    },
+    "/v1/tasks": {
+      "get": {
+        "tags": [
+          "task"
+        ]
+      },
+      "post": {
+        "tags": [
+          "task"
+        ]
+      }
+    },
+    "/v1/tasks/{id}/run": {
+      "post": {
+        "tags": [
+          "task"
+        ]
+      }
+    },
+    "/v1/tasks/{id}/stop": {
+      "post": {
+        "tags": [
+          "task"
+        ]
+      }
+    },
+    "/internal/ui/security/access-check": {
+      "post": {}
+    },
+    "/internal/ui/api/permissions": {
+      "get": {}
+    },
+    "/v1/security/users/{userId}": {
+      "put": {
+        "tags": [
+          "security"
+        ]
+      },
+      "delete": {
+        "tags": [
+          "security"
+        ],
+        "x-mcp-ignore": true
+      }
+    },
+    "/v1/security/users": {
+      "get": {
+        "tags": [
+          "security"
+        ]
+      },
+      "post": {
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/v1/security/privileges/application": {
+      "post": {
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/v1/security/privileges/wildcard": {
+      "post": {
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/v1/security/privileges/{privilegeName}": {
+      "get": {
+        "tags": [
+          "security"
+        ]
+      },
+      "delete": {
+        "tags": [
+          "security"
+        ],
+        "x-mcp-ignore": true
+      }
+    },
+    "/v1/security/privileges": {
+      "get": {
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/v1/security/privileges/application/{privilegeName}": {
+      "put": {
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/v1/security/privileges/wildcard/{privilegeName}": {
+      "put": {
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/v1/security/roles": {
+      "get": {
+        "tags": [
+          "security"
+        ]
+      },
+      "post": {
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/v1/security/roles/{id}": {
+      "get": {
+        "tags": [
+          "security"
+        ]
+      },
+      "put": {
+        "tags": [
+          "security"
+        ]
+      },
+      "delete": {
+        "tags": [
+          "security"
+        ],
+        "x-mcp-ignore": true
+      }
+    },
+    "/v1/security/roles/assignable": {
+      "get": {
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/v1/repositories/{repositoryName}/browse": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "delete": {
+        "tags": [
+          "repo"
+        ],
+        "x-mcp-ignore": true
+      }
+    },
+    "/v1/repositories/apt/hosted": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/apt/hosted/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/apt/proxy": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/apt/proxy/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/maven/group": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/maven/group/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/maven/hosted": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/maven/hosted/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/maven/proxy": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/maven/proxy/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/raw/group": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/raw/group/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/raw/hosted": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/raw/hosted/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/raw/proxy": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/raw/proxy/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/security/privileges/script": {
+      "post": {
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/v1/security/privileges/script/{privilegeName}": {
+      "put": {
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/v1/script": {
+      "get": {
+        "tags": [
+          "script"
+        ]
+      },
+      "post": {
+        "tags": [
+          "script"
+        ]
+      }
+    },
+    "/v1/script/{name}": {
+      "get": {
+        "tags": [
+          "script"
+        ]
+      },
+      "put": {
+        "tags": [
+          "script"
+        ]
+      },
+      "delete": {
+        "tags": [
+          "script"
+        ],
+        "x-mcp-ignore": true
+      }
+    },
+    "/v1/script/{name}/run": {
+      "post": {
+        "tags": [
+          "script"
+        ]
+      }
+    },
+    "/v1/repositories/oci/group": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/oci/group/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/oci/hosted": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/oci/hosted/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/oci/proxy": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/oci/proxy/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/status": {
+      "get": {
+        "tags": [
+          "status"
+        ]
+      }
+    },
+    "/v1/status/writable": {
+      "get": {
+        "tags": [
+          "status"
+        ]
+      }
+    },
+    "/v1/blobstores/{name}": {
+      "delete": {
+        "tags": [
+          "blobstore"
+        ],
+        "x-mcp-ignore": true
+      }
+    },
+    "/v1/blobstores": {
+      "get": {
+        "tags": [
+          "blobstore"
+        ]
+      }
+    },
+    "/v1/blobstores/{name}/quota-status": {
+      "get": {
+        "tags": [
+          "blobstore"
+        ]
+      }
+    },
+    "/v1/blobstores/file": {
+      "post": {
+        "tags": [
+          "blobstore"
+        ]
+      }
+    },
+    "/v1/blobstores/file/{name}": {
+      "get": {
+        "tags": [
+          "blobstore"
+        ]
+      },
+      "put": {
+        "tags": [
+          "blobstore"
+        ]
+      }
+    },
+    "/v1/blobstores/s3": {
+      "post": {
+        "tags": [
+          "blobstore"
+        ]
+      }
+    },
+    "/v1/blobstores/s3/{name}": {
+      "get": {
+        "tags": [
+          "blobstore"
+        ]
+      },
+      "put": {
+        "tags": [
+          "blobstore"
+        ]
+      }
+    },
+    "/v1/email": {
+      "get": {
+        "tags": [
+          "email"
+        ]
+      },
+      "put": {
+        "tags": [
+          "email"
+        ]
+      },
+      "delete": {
+        "tags": [
+          "email"
+        ],
+        "x-mcp-ignore": true
+      }
+    },
+    "/v1/email/verify": {
+      "post": {
+        "tags": [
+          "email"
+        ]
+      }
+    },
+    "/v1/lifecycle/bounce": {
+      "put": {
+        "tags": [
+          "lifecycle"
+        ]
+      }
+    },
+    "/v1/lifecycle/phase": {
+      "get": {
+        "tags": [
+          "lifecycle"
+        ]
+      },
+      "put": {
+        "tags": [
+          "lifecycle"
+        ]
+      }
+    },
+    "/v1/system/node": {
+      "get": {},
+      "delete": {
+        "x-mcp-ignore": true
+      }
+    },
+    "/v1/security/anonymous": {
+      "get": {
+        "tags": [
+          "security"
+        ]
+      },
+      "put": {
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/v1/apikeys/encryption/re-encrypt": {
+      "put": {}
+    },
+    "/v1/system/eula": {
+      "get": {},
+      "post": {}
+    },
+    "/v1/security/realms/active": {
+      "get": {
+        "tags": [
+          "security"
+        ]
+      },
+      "put": {
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/v1/security/realms/available": {
+      "get": {
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/v1/secrets/encryption/re-encrypt": {
+      "put": {}
+    },
+    "/v1/security/ssrf-protection": {
+      "get": {
+        "tags": [
+          "security"
+        ]
+      },
+      "put": {
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/v1/security/user-sources": {
+      "get": {
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/v1/status/check": {
+      "get": {
+        "tags": [
+          "status"
+        ]
+      }
+    },
+    "/v1/support/supportzip": {
+      "post": {}
+    },
+    "/v1/support/supportzippath": {
+      "post": {}
+    },
+    "/v1/system/mandatory-telemetry-acknowledgement": {
+      "get": {},
+      "post": {}
+    },
+    "/v1/security/users/{userId}/change-password": {
+      "put": {
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/v1/configuration": {
+      "get": {
+        "tags": [
+          "config"
+        ]
+      },
+      "put": {
+        "tags": [
+          "config"
+        ]
+      }
+    },
+    "/v1/configuration/cipher": {
+      "post": {
+        "tags": [
+          "config"
+        ]
+      },
+      "delete": {
+        "tags": [
+          "config"
+        ],
+        "x-mcp-ignore": true
+      }
+    },
+    "/v1/configuration/assets": {
+      "get": {
+        "tags": [
+          "config"
+        ]
+      }
+    },
+    "/v1/configuration/assets/{repositoryName}/import": {
+      "post": {
+        "tags": [
+          "config"
+        ]
+      }
+    },
+    "/v1/configuration/transfer-complete": {
+      "post": {
+        "tags": [
+          "config"
+        ]
+      }
+    },
+    "/v1/tasks/templates/{typeId}": {
+      "get": {
+        "tags": [
+          "task"
+        ]
+      }
+    },
+    "/v1/tasks/templates": {
+      "get": {
+        "tags": [
+          "task"
+        ]
+      }
+    },
+    "/v1/tasks/{taskId}": {
+      "put": {
+        "tags": [
+          "task"
+        ]
+      }
+    },
+    "/v1/plan": {
+      "get": {
+        "tags": [
+          "datastore"
+        ]
+      },
+      "put": {
+        "tags": [
+          "datastore"
+        ]
+      },
+      "post": {
+        "tags": [
+          "datastore"
+        ]
+      },
+      "delete": {
+        "tags": [
+          "datastore"
+        ],
+        "x-mcp-ignore": true
+      }
+    },
+    "/v1/plan/{planId}": {
+      "get": {
+        "tags": [
+          "datastore"
+        ]
+      },
+      "put": {
+        "tags": [
+          "datastore"
+        ]
+      },
+      "delete": {
+        "tags": [
+          "datastore"
+        ],
+        "x-mcp-ignore": true
+      }
+    },
+    "/v1/plan/summary": {
+      "get": {
+        "tags": [
+          "datastore"
+        ]
+      }
+    },
+    "/v1/plan/details": {
+      "get": {
+        "tags": [
+          "datastore"
+        ]
+      }
+    },
+    "/v1/recovery-mode": {
+      "post": {},
+      "delete": {
+        "x-mcp-ignore": true
+      }
+    },
+    "/v1/repositories/{repositoryName}/health-check": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "delete": {
+        "tags": [
+          "repo"
+        ],
+        "x-mcp-ignore": true
+      }
+    },
+    "/v1/repository-dashboard/formats": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repository-dashboard": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/evaluation/settings": {
+      "get": {},
+      "patch": {}
+    },
+    "/v1/evaluation/settings-with-repos": {
+      "put": {},
+      "patch": {}
+    },
+    "/v1/evaluation/repositories": {
+      "patch": {}
+    },
+    "/v1/hosted-repository-evaluation/jobs/count": {
+      "get": {}
+    },
+    "/v1/hosted-repository-evaluation/jobs/queued": {
+      "get": {}
+    },
+    "/v1/hosted-repository-evaluation/jobs/scheduler/status": {
+      "get": {}
+    },
+    "/v1/hosted-repository-evaluation/jobs/scheduler/start": {
+      "post": {}
+    },
+    "/v1/hosted-repository-evaluation/jobs/scheduler/stop": {
+      "post": {}
+    },
+    "/v1/hosted-repository-evaluation/jobs/scheduler/update-schedule": {
+      "post": {}
+    },
+    "/v1/repositories/{repositoryName}/evaluation-settings": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/security/ldap/change-order": {
+      "post": {
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/v1/security/ldap/cache": {
+      "delete": {
+        "tags": [
+          "security"
+        ],
+        "x-mcp-ignore": true
+      }
+    },
+    "/v1/security/ldap": {
+      "get": {
+        "tags": [
+          "security"
+        ]
+      },
+      "post": {
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/v1/security/ldap/{name}": {
+      "get": {
+        "tags": [
+          "security"
+        ]
+      },
+      "put": {
+        "tags": [
+          "security"
+        ]
+      },
+      "delete": {
+        "tags": [
+          "security"
+        ],
+        "x-mcp-ignore": true
+      }
+    },
+    "/v1/security/ldap/templates": {
+      "get": {
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/v1/security/ldap/verify-connection": {
+      "post": {
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/v1/security/ldap/verify-login": {
+      "post": {
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/v1/security/ldap/verify-user-mapping": {
+      "post": {
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/v1/system/license": {
+      "get": {},
+      "post": {},
+      "delete": {
+        "x-mcp-ignore": true
+      }
+    },
+    "/beta/data-store": {
+      "get": {
+        "tags": [
+          "datastore"
+        ]
+      },
+      "put": {
+        "tags": [
+          "datastore"
+        ]
+      }
+    },
+    "/v1/repositories/alpine/group": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/alpine/group/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/alpine/hosted": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/alpine/hosted/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/alpine/proxy": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/alpine/proxy/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/ansiblegalaxy/group": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/ansiblegalaxy/group/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/ansiblegalaxy/hosted": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/ansiblegalaxy/hosted/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/ansiblegalaxy/proxy": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/ansiblegalaxy/proxy/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/cargo/group": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/cargo/group/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/cargo/hosted": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/cargo/hosted/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/cargo/proxy": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/cargo/proxy/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/cocoapods/proxy": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/cocoapods/proxy/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/composer/group": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/composer/group/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/composer/hosted": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/composer/hosted/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/composer/proxy": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/composer/proxy/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/conan/group": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/conan/group/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/conan/hosted": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/conan/hosted/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/conan/proxy": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/conan/proxy/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/conda/group": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/conda/group/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/conda/hosted": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/conda/hosted/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/conda/proxy": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/conda/proxy/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/docker/group": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/docker/group/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/docker/hosted": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/docker/hosted/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/docker/proxy": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/docker/proxy/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/gitlfs/hosted": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/gitlfs/hosted/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/go/group": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/go/group/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/go/hosted": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/go/hosted/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/go/proxy": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/go/proxy/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/helm/group": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/helm/group/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/helm/hosted": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/helm/hosted/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/helm/proxy": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/helm/proxy/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/huggingface/proxy": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/huggingface/proxy/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/npm/group": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/npm/group/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/npm/hosted": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/npm/hosted/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/npm/proxy": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/npm/proxy/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/nuget/group": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/nuget/group/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/nuget/hosted": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/nuget/hosted/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/nuget/proxy": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/nuget/proxy/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/p2/proxy": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/p2/proxy/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/pypi/group": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/pypi/group/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/pypi/hosted": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/pypi/hosted/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/pypi/proxy": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/pypi/proxy/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/pub/group": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/pub/group/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/pub/hosted": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/pub/hosted/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/pub/proxy": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/pub/proxy/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/r/group": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/r/group/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/r/hosted": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/r/hosted/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/r/proxy": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/r/proxy/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/rubygems/group": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/rubygems/group/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/rubygems/hosted": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/rubygems/hosted/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/rubygems/proxy": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/rubygems/proxy/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/swift/group": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/swift/group/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/swift/hosted": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/swift/hosted/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/swift/proxy": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/swift/proxy/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/terraform/group": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/terraform/group/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/terraform/hosted": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/terraform/hosted/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/terraform/proxy": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/terraform/proxy/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/yum/group": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/yum/group/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/yum/hosted": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/yum/hosted/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/yum/proxy": {
+      "post": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/repositories/yum/proxy/{repositoryName}": {
+      "get": {
+        "tags": [
+          "repo"
+        ]
+      },
+      "put": {
+        "tags": [
+          "repo"
+        ]
+      }
+    },
+    "/v1/blobstores/azure": {
+      "post": {
+        "tags": [
+          "blobstore"
+        ]
+      }
+    },
+    "/v1/blobstores/azure/{name}": {
+      "get": {
+        "tags": [
+          "blobstore"
+        ]
+      },
+      "put": {
+        "tags": [
+          "blobstore"
+        ]
+      }
+    },
+    "/v1/azureblobstore/test-connection": {
+      "post": {
+        "tags": [
+          "blobstore"
+        ]
+      }
+    },
+    "/v1/malicious-risk/enabledRegistries": {
+      "get": {}
+    },
+    "/v1/malicious-risk/risk-on-disk": {
+      "get": {}
+    },
+    "/v1/blobstores/google": {
+      "post": {
+        "tags": [
+          "blobstore"
+        ]
+      }
+    },
+    "/v1/blobstores/google/{name}": {
+      "get": {
+        "tags": [
+          "blobstore"
+        ]
+      },
+      "put": {
+        "tags": [
+          "blobstore"
+        ]
+      }
+    },
+    "/v1/blobstores/google/regions/{projectId}": {
+      "get": {
+        "tags": [
+          "blobstore"
+        ]
+      }
+    },
+    "/v1/blobstores/group/convert/{name}/{newNameForOriginal}": {
+      "post": {
+        "tags": [
+          "blobstore"
+        ]
+      }
+    },
+    "/v1/blobstores/group": {
+      "post": {
+        "tags": [
+          "blobstore"
+        ]
+      }
+    },
+    "/v1/blobstores/group/{name}": {
+      "get": {
+        "tags": [
+          "blobstore"
+        ]
+      },
+      "put": {
+        "tags": [
+          "blobstore"
+        ]
+      }
+    },
+    "/v1/capabilities": {
+      "get": {
+        "tags": [
+          "capability"
+        ]
+      },
+      "post": {
+        "tags": [
+          "capability"
+        ]
+      }
+    },
+    "/v1/capabilities/{capabilityId}": {
+      "put": {
+        "tags": [
+          "capability"
+        ]
+      },
+      "delete": {
+        "tags": [
+          "capability"
+        ],
+        "x-mcp-ignore": true
+      }
+    },
+    "/v1/capabilities/types": {
+      "get": {
+        "tags": [
+          "capability"
+        ]
+      }
+    },
+    "/v1/iq/disable": {
+      "post": {}
+    },
+    "/v1/iq/enable": {
+      "post": {}
+    },
+    "/v1/iq/capabilities": {
+      "get": {}
+    },
+    "/v1/iq/capabilities/test": {
+      "post": {}
+    },
+    "/v1/iq": {
+      "get": {},
+      "put": {}
+    },
+    "/v1/iq/test-new-connection": {
+      "post": {}
+    },
+    "/v1/iq/verify-connection": {
+      "post": {}
+    },
+    "/v1/http": {
+      "get": {},
+      "put": {},
+      "delete": {
+        "x-mcp-ignore": true
+      }
+    },
+    "/v1/monthly-metrics": {
+      "get": {}
+    },
+    "/v1/usage-history": {
+      "get": {}
+    },
+    "/v1/security/ssl/truststore": {
+      "get": {
+        "tags": [
+          "security"
+        ]
+      },
+      "post": {
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/v1/security/ssl/truststore/{id}": {
+      "delete": {
+        "tags": [
+          "security"
+        ],
+        "x-mcp-ignore": true
+      }
+    },
+    "/v1/security/ssl": {
+      "get": {
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/beta/status/check/cluster": {
+      "get": {
+        "tags": [
+          "status"
+        ]
+      }
+    },
+    "/beta/status/check/{nodeId}": {
+      "get": {
+        "tags": [
+          "status"
+        ]
+      }
+    }
+  }
+}
