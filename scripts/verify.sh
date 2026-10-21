@@ -12,7 +12,15 @@ BIN="${NEXUS_CLI:-$ROOT/dist/nexus-cli}"
 PASS=0; FAIL=0; SKIP=0
 
 ok()   { printf '  \033[32m✓\033[0m %s\n' "$*"; PASS=$((PASS+1)); }
-bad()  { printf '  \033[31m✗\033[0m %s\n' "$*"; FAIL=$((FAIL+1)); }
+# bad 在 GitHub Actions 里额外发一条 ::error 注解，便于不下载日志也能定位失败项
+bad()  {
+  printf '  \033[31m✗\033[0m %s\n' "$*"
+  if [ -n "${GITHUB_ACTIONS:-}" ]; then
+    printf '::error title=verify::%s\n' "$*"
+  fi
+  FAIL=$((FAIL+1))
+  return 0
+}
 skip() { printf '  \033[33m-\033[0m %s\n' "$*"; SKIP=$((SKIP+1)); }
 head_() { printf '\n\033[1m%s\033[0m\n' "$*"; }
 
@@ -59,7 +67,10 @@ done
 
 # ── 4. upload 参数整形 ─────────────────────────────────────────────────────
 head_ "4. upload (dry-run)"
-jar="$(mktemp -t nxv.XXXXXX.jar)"; echo x > "$jar"
+# 注意：不要用 `mktemp -t foo.XXXXXX.jar` —— GNU coreutils 要求模板以 X 结尾，
+# macOS 的 BSD mktemp 则允许后缀。用临时目录 + 固定文件名才可移植。
+tmpdir="$(mktemp -d)"
+jar="$tmpdir/app.jar"; echo x > "$jar"
 out="$(HOME="$FH" env -u NEXUS_USER -u NEXUS_PASSWORD "$BIN" upload --dry-run \
         --repo R --format maven --file "$jar" --group com.example --artifact app --version 1.0.0 2>&1)"
 for f in maven2.groupId maven2.artifactId maven2.version maven2.asset1 maven2.asset1.extension; do
@@ -69,7 +80,7 @@ grep -qE 'name=" ' <<<"$out" && bad "字段名含前导空格" || ok "字段名�
 # dry-run 不应要求凭据（上面已用 env -u 验证）
 HOME="$FH" env -u NEXUS_USER -u NEXUS_PASSWORD "$BIN" upload --repo R --format raw --file "$jar" >/dev/null 2>&1 \
   && bad "真正发送时缺凭据应当报错" || ok "缺凭据时正确报错"
-rm -f "$jar"
+rm -rf "$tmpdir"
 
 # ── 5. upload-dir ─────────────────────────────────────────────────────────
 head_ "5. upload-dir (dry-run)"
