@@ -1,0 +1,50 @@
+# goreleaser 配置：推 tag（v*）时由 GitHub Actions 产出多平台单文件二进制。
+#
+# 产物形态：nexus-cli_<os>_<arch>（tar.gz；windows 为 zip），无需任何运行期依赖。
+#
+# 若要同时发布 Homebrew tap，取消 brews 段的注释并填上你自己的 tap 仓库。
+version: 2
+
+project_name: nexus-cli
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: nexus-cli
+    main: ./cmd/nexus-cli
+    binary: nexus-cli
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{ .Version }}
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - formats: [tar.gz]
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+checksum:
+  name_template: checksums.txt
+
+# brews:
+#   - repository:
+#       owner: YOUR_GITHUB_USER
+#       name: homebrew-tap
+#     homepage: https://github.com/YOUR_GITHUB_USER/nexus-cli
+#     description: Nexus Repository Manager CLI (single static binary, embedded OpenAPI)
+#     install: |
+#       bin.install "nexus-cli"

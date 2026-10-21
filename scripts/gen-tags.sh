@@ -16,16 +16,9 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# 默认从 config/restish.api.json 的 spec_files[0] 解析当前 vendor spec，避免硬编码版本号
+# 默认取仓库内版本号最高的 spec/nexus-*.json（不硬编码版本，sync-spec.sh 会改文件名）。
+# 单文件分发：spec 会被 go:embed 编进二进制，所以这里必须恰好有一个 .json。
 SPEC="${1:-}"
-if [ -z "$SPEC" ]; then
-  SPEC="$(jq -r '.apis["nexus-cli"].spec_files[0] // empty' "$ROOT/config/restish.api.json" 2>/dev/null || true)"
-  case "$SPEC" in
-    ./*) SPEC="$ROOT/${SPEC#./}";;
-    "")  SPEC="";;
-  esac
-fi
-# 兜底：取仓库内版本号最高的 spec/nexus-*.json（不硬编码版本，sync-spec.sh 会改文件名）
 [ -n "$SPEC" ] && [ -f "$SPEC" ] || SPEC="$(ls -1 "$ROOT"/spec/nexus-*.json 2>/dev/null | sort -V | tail -1)"
 
 OUT="${2:-$ROOT/spec/nexus-tags.generated.yaml}"

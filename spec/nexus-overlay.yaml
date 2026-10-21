@@ -75,14 +75,16 @@ paths:
       x-cli-description: List components in a repository
     post:
       # 注意：不要用这条命令上传！Restish 会把 multipart 字段名 maven2.asset1
-      # 改写成 maven2[asset1] 并丢弃二进制部分。请用 `nexus upload`（curl + api auth get）。
+      # 改写成 maven2[asset1] 并丢弃二进制部分。请用 `nexus-cli upload`。
       x-cli-name: upload-unsupported
-      x-cli-description: '[不要用] 请改用 `nexus upload`；Restish shorthand 会破坏 Nexus 的点号字段名'
+      x-cli-description: '[不要用] 请改用 `nexus-cli upload`；Restish shorthand 会破坏 Nexus 的点号字段名'
       x-mcp-ignore: true
   /v1/components/{id}:
     get:
       x-cli-name: get
       x-cli-description: Get a component (needs ?repository=)
+    delete:
+      x-cli-name: delete
   /v1/assets:
     get:
       x-cli-name: list
@@ -176,11 +178,10 @@ paths:
   /v1/tasks/{id}/run:
     post:
       x-cli-name: run
-      x-mcp-ignore: true
+      # 这是「生产性写」：默认档位就应允许 agent 触发任务，不要标 x-mcp-ignore
   /v1/tasks/{id}/stop:
     post:
       x-cli-name: stop
-      x-mcp-ignore: true
   /v1/tasks/templates:
     get:
       x-cli-name: templates

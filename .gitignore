@@ -1,4 +1,7 @@
-# 运行期产物
+# 构建产物
+dist/
+
+# 运行期缓存
 .cache/
 
 # 凭据（绝不入库）
@@ -14,8 +17,3 @@ env
 
 # AI 工具自身的配置目录（不是本工程的一部分）
 .commandcode/
-
-# 本工程的主入口在 bin/。有些人的全局 gitignore（~/.gitignore_global）里有 `bin/`
-# 规则，会把它整个排除；项目级 .gitignore 优先级更高，这里显式放行。
-!bin/
-!bin/nexus-cli
