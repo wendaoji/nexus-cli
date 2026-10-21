@@ -52,6 +52,39 @@ Restish 提供 OpenAPI → CLI 的能力（409 个操作零手写），并且官
 
 注意：嵌入 API 没有 `AddCommand`，所以自有命令在 `main()` 里拦截，不注册进 Restish。
 
+#### 为什么不用官方的「命令插件（command plugin）」
+
+Restish 支持把自定义命令做成独立二进制（stdio + CBOR 与宿主通信），由插件编排
+多步逻辑、宿主代为执行 HTTP（`HTTPRequestMsg`），从而复用宿主的鉴权/profile/
+重试/缓存/分页。模型本身很好，但不适合本项目的交付目标：
+
+| 维度 | 命令插件 | 本项目的内嵌方式 |
+|---|---|---|
+| 运行前提 | **必须有 restish 宿主** | 单文件，无宿主 |
+| 生成的 409 个命令 | 仍由宿主的全局配置提供 | `SetDefaultConfig` 编进二进制 |
+| MCP | 无法注册（`restish mcp` 自己就是插件） | 进程内实现，读内嵌 spec |
+| 构件上传 | **表达不了**（见下） | 自己发 multipart |
+| 分发 | 两个产物 + `plugin install` + 版本对齐 | 一个产物 |
+
+上传那一条值得单独说明：宿主处理委托请求时走的是
+
+```go
+// restish internal/cli/command_plugin_handlers.go
+prepared, err := c.prepareRequest(ctx, method, msg.URI, profileName, opts, msg.Body, ...)
+```
+
+`HTTPRequestMsg.Body` 是**结构化值**（CBOR 解出的 map），不是原始字节，因此会经过
+Restish 自己的 body 编码器——对 `multipart/form-data` 就是把 map 展开成 parts，
+正是把 `maven2.asset1` 写成 `maven2[asset1]` 的那条路径。插件若改为自己发 HTTP，
+又必须自己解析 `env:` 凭据，等于绕开委托机制存在的理由。
+
+**反过来**，如果目标不是"单文件交付"，而是"在既有 restish 安装上扩展几个组织专属
+的组合命令"，插件模型是更合适的选择：它能让自定义命令与生成命令共享 auth、
+profile、缓存与分页，而无需改动宿主。
+
+我们的 `upload-dir` 本质上也是"封装多步调用的高级顶层命令"，只是实现为进程内
+函数而非插件协议——效果等价，且不引入宿主依赖。
+
 ### 2. 为什么 spec 分三层
 
 ```
