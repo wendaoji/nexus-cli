@@ -117,6 +117,10 @@ nexus-cli mcp --allow-destructive  # 额外放开 delete / security 变更 / scr
 客户端配置见 `mcp/mcp.json.example`，agent 约定见 `agent/AGENTS.md` 与 `agent/SKILL.md`。
 工具名为 `<分组>_<动词>`（如 `repo_list`），与 CLI 的 `repo list` 对应。
 
+> MCP 使用**本机**的 context 凭据，只支持 stdio（由客户端拉起子进程），
+> 不提供网络监听。原因与跨机做法见
+> [`docs/DESIGN.md`](docs/DESIGN.md) 的「MCP 只做 stdio」一节。
+
 ## 语言
 
 默认英文；`LANG`/`LC_ALL`/`LC_MESSAGES` 以 `zh` 开头时切中文：
