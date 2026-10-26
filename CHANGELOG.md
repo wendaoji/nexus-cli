@@ -2,6 +2,17 @@
 
 本项目遵循语义化版本。破坏性变更会标 **BREAKING**。
 
+## v0.4.0（BREAKING）
+
+- **BREAKING** 隐藏底层 OpenAPI 命令引擎的支持命令与配置入口；不再公开
+  `nexus-cli restish ...`、`restish.json` 或 `--rsh-*` 实现细节。
+- **修复** 内嵌命令运行时不再读取独立 Restish 的全局配置，避免旧的本地 spec
+  路径覆盖二进制内嵌 spec，导致移动源码目录后 `nexus-cli --help` 失败。
+- **变更** 用户只需维护 `$XDG_CONFIG_HOME/nexus-cli/config.json`；spec 与命令元数据
+  仅写入平台缓存目录，可安全删除并自动重建。
+- **文档** 新增统一环境变量清单，明确 spec 通过 `go:embed` 编入二进制并在运行时
+  动态解析；当前版本继续使用经过验证的 Nexus `3.97.0-13` spec bundle。
+
 ## v0.3.0
 
 - **新增** 中英双语（默认英文）。按 `--lang` > `NEXUS_CLI_LANG` > `LC_ALL` >
