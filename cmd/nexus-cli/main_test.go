@@ -12,14 +12,24 @@ func TestNewRestishCLIUsesNexusCacheDir(t *testing.T) {
 	t.Setenv("HOME", home)
 	t.Setenv("XDG_CACHE_HOME", "")
 
-	cli := newRestishCLI()
+	cli, err := newRestishCLI()
+	if err != nil {
+		t.Fatal(err)
+	}
 	base, err := os.UserCacheDir()
 	if err != nil {
 		t.Fatal(err)
 	}
 	want := filepath.Join(base, "nexus-cli", "runtime.json")
-	if got := cli.Paths.ConfigFile(); got != want {
+	canonicalWant, err := filepath.EvalSymlinks(want)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := cli.Paths.ConfigFile(); got != canonicalWant {
 		t.Fatalf("runtime state path = %q, want %q", got, want)
+	}
+	if data, err := os.ReadFile(want); err != nil || string(data) != "{}\n" {
+		t.Fatalf("runtime config = %q, %v; want empty JSON config", data, err)
 	}
 }
 
@@ -43,13 +53,20 @@ func TestNewRestishCLIIgnoresStockRestishConfig(t *testing.T) {
 	t.Setenv("RSH_CONFIG", filepath.Join(t.TempDir(), "restish.json"))
 	t.Setenv("RSH_CONFIG_DIR", t.TempDir())
 
-	cli := newRestishCLI()
+	cli, err := newRestishCLI()
+	if err != nil {
+		t.Fatal(err)
+	}
 	base, err := os.UserCacheDir()
 	if err != nil {
 		t.Fatal(err)
 	}
 	want := filepath.Join(base, "nexus-cli", "runtime.json")
-	if got := cli.Paths.ConfigFile(); got != want {
+	canonicalWant, err := filepath.EvalSymlinks(want)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := cli.Paths.ConfigFile(); got != canonicalWant {
 		t.Fatalf("runtime state path = %q, want %q", got, want)
 	}
 }

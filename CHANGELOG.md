@@ -2,6 +2,12 @@
 
 本项目遵循语义化版本。破坏性变更会标 **BREAKING**。
 
+## v0.4.1
+
+- **修复** 首次执行 `nexus-cli completion <shell>` 时不再输出底层命令引擎的
+  `restish shell setup` 提示；内部空配置只写入缓存，不增加用户配置文件。
+- **修复** 验证脚本构建的二进制现在注入 Git 版本，不再显示 Go 生成的旧伪版本。
+
 ## v0.4.0（BREAKING）
 
 - **BREAKING** 隐藏底层 OpenAPI 命令引擎的支持命令与配置入口；不再公开

@@ -97,7 +97,10 @@ func run() error {
 		return err
 	}
 
-	cli := newRestishCLI()
+	cli, err := newRestishCLI()
+	if err != nil {
+		return err
+	}
 	cli.SetCommandName("nexus-cli")
 	cli.SetCommandDescription(
 		"Nexus Repository Manager CLI",
@@ -137,10 +140,38 @@ func run() error {
 // configuration. The selected path lives in nexus-cli's cache and normally is
 // never created: all required API settings are supplied in memory below. It is
 // deliberately not a second user configuration file.
-func newRestishCLI() *restish.CLI {
+func newRestishCLI() (*restish.CLI, error) {
+	runtimeConfig := filepath.Join(specs.CacheDir(), "runtime.json")
+	if err := ensureRuntimeConfig(runtimeConfig); err != nil {
+		return nil, err
+	}
 	cli := restish.New()
-	cli.Paths = restishconfig.NewPathsWithConfigFile(filepath.Join(specs.CacheDir(), "runtime.json"))
-	return cli
+	cli.Paths = restishconfig.NewPathsWithConfigFile(runtimeConfig)
+	return cli, nil
+}
+
+// ensureRuntimeConfig creates an empty internal config so the embedded engine
+// does not emit its stock first-run setup hint. This file lives in the cache,
+// contains no user settings, and can be deleted safely.
+func ensureRuntimeConfig(path string) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return fmt.Errorf("create runtime cache: %w", err)
+	}
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if errors.Is(err, os.ErrExist) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("create runtime cache: %w", err)
+	}
+	if _, err := f.WriteString("{}\n"); err != nil {
+		_ = f.Close()
+		return fmt.Errorf("write runtime cache: %w", err)
+	}
+	if err := f.Close(); err != nil {
+		return fmt.Errorf("write runtime cache: %w", err)
+	}
+	return nil
 }
 
 func runGeneratedCLI(cli *restish.CLI, argv []string) error {
