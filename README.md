@@ -2,8 +2,8 @@
 
 Nexus Repository Manager 的命令行工具与 MCP server。
 
-**一个静态二进制，零运行期依赖。** 不需要 restish、jq、curl、python 或 shell ——
-Restish 与 Nexus 的 OpenAPI spec 都已编进二进制。
+**一个静态二进制，零运行期依赖。** 不需要额外安装 OpenAPI 命令引擎、jq、curl、
+python 或 shell；Nexus 的 OpenAPI spec 已编进二进制。
 
 - 命令面由 OpenAPI spec 生成，覆盖 **409 个 REST 操作**
 - 另有三类自有能力：构件上传（multipart）、多目标 context、MCP server
@@ -74,6 +74,9 @@ NEXUS_URL=http://dev:8081 nexus-cli repo list   # 按地址自动匹配凭据
 凭据 `NEXUS_USER`/`NEXUS_PASSWORD` > context。
 
 若本次目标地址与 context 记录的地址不一致，`whoami` 会报错退出——避免拿 A 的凭据打 B。
+
+所有受支持的运行时、语言、路径及维护环境变量统一列在
+[`docs/ENVIRONMENT.md`](docs/ENVIRONMENT.md)。
 
 ## 上传
 
@@ -150,6 +153,10 @@ lang      en
 
 Pro 专属接口（user token、LDAP、licensing、Firewall/IQ、证书、content selectors、
 malicious-risk 等）在 Community 版不可用，已从命令面隐藏。
+
+spec 在编译时通过 `go:embed` 放进二进制，在运行时动态解析；它不用于生成 Go
+代码。当前不接受任意运行时 spec：CLI 命令、MCP 工具、overlay 和破坏性操作分类
+必须作为一组经过验证，避免只替换 vendor JSON 后改变命令语义或安全边界。
 
 升级 spec 与发布流程见 [`docs/DESIGN.md`](docs/DESIGN.md)；变更历史见
 [`CHANGELOG.md`](CHANGELOG.md)。

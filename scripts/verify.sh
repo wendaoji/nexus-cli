@@ -57,7 +57,12 @@ head_ "1. 基本命令"
 ver_out="$(run version 2>&1)"
 if grep -q "spec" <<<"$ver_out"; then ok "version 含内嵌 spec 版本"; else bad "version 未输出版本信息"; fi
 run --help >/dev/null 2>&1 && ok "--help" || bad "--help"
-run restish config path >/dev/null 2>&1 && ok "内置命令收在 restish 命名空间" || bad "restish 命名空间缺失"
+public_help="$(run --help 2>&1)"
+if grep -qiE 'restish|--rsh-' <<<"$public_help"; then
+  bad "帮助中仍暴露底层命令引擎"
+else
+  ok "帮助未暴露底层命令引擎"
+fi
 
 # ── 2. 生成命令（无外部配置）──────────────────────────────────────────────
 head_ "2. 生成的命令"
@@ -213,7 +218,7 @@ head_ "9. 语言"
 out="$(NEXUS_CLI_LANG=en "$BIN" whoami 2>&1)"
 grep -q "account:" <<<"$out" && grep -q "address:" <<<"$out" && ok "英文输出" || bad "英文输出异常: $out"
 
-out="$(LANG=zh_CN.UTF-8 env -u NEXUS_CLI_LANG "$BIN" whoami 2>&1)"
+out="$(LANG=zh_CN.UTF-8 env -u NEXUS_CLI_LANG -u LC_ALL -u LC_MESSAGES "$BIN" whoami 2>&1)"
 grep -q "账号:" <<<"$out" && grep -q "地址:" <<<"$out" && ok "LANG=zh_CN.UTF-8 切到中文" || bad "中文输出异常: $out"
 
 out="$(LC_ALL=zh_TW.UTF-8 env -u NEXUS_CLI_LANG "$BIN" whoami 2>&1)"

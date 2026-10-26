@@ -48,7 +48,11 @@ Restish 提供 OpenAPI → CLI 的能力（409 个操作零手写），并且官
 
 - 调用外部 `restish` 二进制：用户要多装一个程序，且 bash wrapper 不支持 Windows
 - 自研命令生成：等于重写 Restish
-- **内嵌**：`SetDefaultConfig` 把 base_url 与 spec 编进二进制，用户无需任何全局配置
+- **内嵌**：`SetDefaultConfig` 在内存中提供 base_url 与 spec，用户无需维护底层引擎配置
+
+Restish 是内部实现依赖，不是产品配置接口。它的支持命令被隐藏，且运行时不会读取
+用户机器上的全局 Restish 配置。用户需要维护的唯一文件是
+`$XDG_CONFIG_HOME/nexus-cli/config.json`；底层引擎的临时状态与 spec 元数据只进入缓存。
 
 注意：嵌入 API 没有 `AddCommand`，所以自有命令在 `main()` 里拦截，不注册进 Restish。
 
@@ -199,6 +203,12 @@ CLI 只负责在边界内部把那台机器已有的权限用好。**
 
 因此**升级 Nexus 不需要升级 CLI**；升级 CLI 也不要求服务器同版本。
 真正需要关注的是「想用的新接口是否已在命令面里」。
+
+当前不支持运行时传入任意 spec。CLI 生成命令与 MCP 工具分别解析同一个 bundle，
+而 bundle 不只有 vendor JSON，还包含生成的 tag overlay、人工语义层以及破坏性操作
+分类。只替换其中一个文件可能造成命令改名、接口过滤失效或 MCP 安全档位变化。
+若未来需要多版本，将以经过测试的完整 spec bundle/profile 为单位提供，而不是接受
+未经验证的单个 OpenAPI 文件。
 
 ### 升级 spec
 

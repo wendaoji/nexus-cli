@@ -12,13 +12,17 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"os"
+	"path/filepath"
 	"runtime/debug"
 	"strings"
 
 	restish "github.com/rest-sh/restish/v2"
+	restishconfig "github.com/rest-sh/restish/v2/config"
 
 	"github.com/wendaoji/nexus-cli/internal/commands"
 	"github.com/wendaoji/nexus-cli/internal/config"
@@ -93,11 +97,11 @@ func run() error {
 		return err
 	}
 
-	cli := restish.New()
+	cli := newRestishCLI()
 	cli.SetCommandName("nexus-cli")
 	cli.SetCommandDescription(
 		"Nexus Repository Manager CLI",
-		i18n.T("Nexus Repository Manager CLI - embedded Restish and OpenAPI spec, single-file distribution."),
+		i18n.T("Nexus Repository Manager CLI - OpenAPI-powered, single-file distribution."),
 	)
 	cli.SetVersion(resolveVersion())
 	cli.SetDefaultConfig(&restish.Config{APIs: map[string]*restish.APIConfig{
@@ -120,14 +124,64 @@ func run() error {
 		},
 	}})
 	cli.SetCommandSurface(restish.CommandSurface{
-		PromotedAPI: apiName,
-		// Generated commands move to the root; built-in commands move under the
-		// "restish" namespace so they neither collide with Nexus's "config"
-		// group nor disappear as a debugging escape hatch.
-		SupportCommandNamespace: "restish",
+		PromotedAPI:         apiName,
+		HideSupportCommands: true,
 	})
-	// Pass argv without the global flags we consumed.
-	return cli.Run(append([]string{os.Args[0]}, args...))
+	// Pass argv without the global flags we consumed. Help is filtered because
+	// the embedded engine still labels a few advanced flags with its own brand;
+	// those implementation details are not part of nexus-cli's public surface.
+	return runGeneratedCLI(cli, append([]string{os.Args[0]}, args...))
+}
+
+// newRestishCLI isolates the embedded command engine from the stock Restish
+// configuration. The selected path lives in nexus-cli's cache and normally is
+// never created: all required API settings are supplied in memory below. It is
+// deliberately not a second user configuration file.
+func newRestishCLI() *restish.CLI {
+	cli := restish.New()
+	cli.Paths = restishconfig.NewPathsWithConfigFile(filepath.Join(specs.CacheDir(), "runtime.json"))
+	return cli
+}
+
+func runGeneratedCLI(cli *restish.CLI, argv []string) error {
+	if !isHelpInvocation(argv[1:]) {
+		return cli.Run(argv)
+	}
+	var out bytes.Buffer
+	cli.Stdout = &out
+	err := cli.Run(argv)
+	_, writeErr := io.WriteString(os.Stdout, publicHelp(out.String()))
+	if err != nil {
+		return err
+	}
+	return writeErr
+}
+
+func isHelpInvocation(args []string) bool {
+	if len(args) == 0 {
+		return true
+	}
+	for _, arg := range args {
+		if arg == "--help" || arg == "-h" || arg == "help" {
+			return true
+		}
+	}
+	return false
+}
+
+func publicHelp(s string) string {
+	lines := strings.Split(s, "\n")
+	out := lines[:0]
+	for _, line := range lines {
+		lower := strings.ToLower(line)
+		if strings.Contains(lower, "restish") || strings.Contains(line, "--rsh-") {
+			continue
+		}
+		out = append(out, line)
+	}
+	s = strings.Join(out, "\n")
+	s = strings.ReplaceAll(s, "Flags:\nGeneral Options\n\n", "")
+	return s
 }
 
 // extractGlobals pulls --context / --url out of argv and stores them in the

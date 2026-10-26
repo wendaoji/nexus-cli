@@ -129,7 +129,7 @@ func materialize(names []string) (string, error) {
 		_, _ = h.Write([]byte(n))
 		_, _ = h.Write(b)
 	}
-	dir := filepath.Join(cacheRoot(), "spec", hex.EncodeToString(h.Sum(nil))[:16])
+	dir := filepath.Join(CacheDir(), "spec", hex.EncodeToString(h.Sum(nil))[:16])
 
 	// 已落盘则直接复用
 	if ok, _ := complete(dir, names); ok {
@@ -155,7 +155,9 @@ func complete(dir string, names []string) (bool, error) {
 	return true, nil
 }
 
-func cacheRoot() string {
+// CacheDir 返回 nexus-cli 自己的缓存目录。除内嵌 spec 外，内部命令运行时的
+// 临时状态也放在这里；它不是用户配置，不应要求用户维护。
+func CacheDir() string {
 	if d, err := os.UserCacheDir(); err == nil && d != "" {
 		return filepath.Join(d, "nexus-cli")
 	}

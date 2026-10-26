@@ -34,7 +34,7 @@ var catalog = map[string]string{
 	"failed: %s":                                 "失败: %s",
 
 	// 登录 / context
-	"Nexus Repository Manager CLI - embedded Restish and OpenAPI spec, single-file distribution.": "Nexus Repository Manager CLI —— 内嵌 Restish 与 OpenAPI spec，单文件分发。",
+	"Nexus Repository Manager CLI - OpenAPI-powered, single-file distribution.": "Nexus Repository Manager CLI —— OpenAPI 驱动，单文件分发。",
 	"Password (or user token passcode) for %s: ":                                                  "%s 的密码（或 user token passcode）: ",
 	"login: --user is required":                                                                   "login: 需要 --user",
 	"login: empty password, nothing written":                                                      "login: 密码为空，未写入",
