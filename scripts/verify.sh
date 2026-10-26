@@ -29,8 +29,10 @@ have_creds() { [ -n "${NEXUS_USER:-}" ] && [ -n "${NEXUS_PASSWORD:-}" ]; }
 # ── 0. 构建 ────────────────────────────────────────────────────────────────
 head_ "0. 构建"
 if command -v go >/dev/null 2>&1; then
-  if (cd "$ROOT" && go build -o "$BIN" ./cmd/nexus-cli) 2>/tmp/nx-build.err; then
-    ok "go build"
+  BUILD_VERSION="${VERSION:-$(git -C "$ROOT" describe --tags --always --dirty 2>/dev/null || echo dev)}"
+  if (cd "$ROOT" && go build -trimpath -ldflags "-s -w -X main.version=$BUILD_VERSION" \
+      -o "$BIN" ./cmd/nexus-cli) 2>/tmp/nx-build.err; then
+    ok "go build（版本 ${BUILD_VERSION}）"
   else
     bad "go build 失败：$(head -3 /tmp/nx-build.err)"
   fi
